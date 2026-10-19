@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SAP 개발팀</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <div class="row"><h1>SAP 개발팀</h1>
+      <nav><a href="#/" id="navBoard">개발 요청</a><a href="#/wiki" id="navWiki">📚 지식 위키</a><a href="#/standards" id="navStd">📏 개발표준</a><a href="#/trash" id="navTrash">🗑 휴지통</a></nav></div>
+    <div id="env"></div>
+  </header>
+  <main id="board">
+    <aside>
+      <button id="newBtn" class="primary">+ 새 개발 요청</button>
+      <ul id="tickets"></ul>
+    </aside>
+    <section id="detail">
+      <div class="empty">왼쪽에서 요청을 선택하거나 새 개발 요청을 등록하세요.</div>
+    </section>
+  </main>
+  <main id="wiki" class="wiki" hidden>
+    <aside>
+      <form id="wikiSearch"><input id="wikiQ" type="search" placeholder="위키 검색 (예: 배치관리, MARC)" autocomplete="off" /></form>
+      <button id="wikiNew" style="width:100%;margin-top:8px">+ 새 문서</button>
+      <div id="wikiNav"></div>
+    </aside>
+    <section id="wikiBody"></section>
+  </main>
+  <main id="standards" class="standards" hidden>
+    <section id="stdBody"></section>
+  </main>
+  <main id="trash" class="standards" hidden>
+    <section id="trashBody"></section>
+  </main>
+
+  <dialog id="newDlg">
+    <form method="dialog" id="newForm">
+      <h2>새 개발 요청</h2>
+      <label>대상 SAP 시스템<select name="system" id="newSystem"></select></label>
+      <label>제목<input name="title" required placeholder="예: 미결 판매오더 조회 리포트" /></label>
+      <label>요청 내용<textarea name="request" rows="10" placeholder="현업 요청 내용을 그대로 붙여 넣어도 됩니다.&#10;예: 영업조직별로 납품되지 않은 판매오더를 조회하고 엑셀로 내려받고 싶습니다...&#10;화면 캡처는 여기에 바로 붙여넣기(Ctrl+V) 할 수 있습니다."></textarea></label>
+      <div id="newDrop" class="drop">📎 문서·이미지를 끌어다 놓거나 <button type="button" id="newPick" class="small">파일 선택</button>
+        <div class="sub" style="margin:2px 0 0">이미지·PDF·Word·Excel·PowerPoint·텍스트, 파일당 20MB까지 (hwp·doc·xls는 PDF로 저장해서)</div>
+        <input type="file" id="newFiles" multiple hidden accept=".png,.jpg,.jpeg,.gif,.webp,.pdf,.docx,.xlsx,.pptx,.txt,.md,.csv,.json,.xml,.abap,.sql" />
+        <ul id="newList" class="atts"></ul></div>
+      <label>📊 구글시트 링크 <span class="sub" style="font-weight:normal">(선택, 한 줄에 하나 · '링크가 있는 모든 사용자 - 뷰어'로 공유된 시트)</span>
+        <textarea name="sheets" rows="2" placeholder="https://docs.google.com/spreadsheets/d/..."></textarea></label>
+      <div class="row" style="margin:-6px 0 12px;gap:8px;align-items:flex-start"><button type="button" id="sheetCheck" class="small">🔌 연결 확인</button>
+        <ul id="sheetResult" class="atts" style="margin:0;flex:1"></ul></div>
+      <div class="row end">
+        <button value="cancel" formnovalidate>취소</button>
+        <button value="ok" class="primary">개발팀에 전달</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="app.js"></script>
+  <script src="standards.js"></script>
+  <script src="stagepptx.js"></script>
+  <script src="trash.js"></script>
+  <script src="wiki.js"></script>
+</body>
+</html>

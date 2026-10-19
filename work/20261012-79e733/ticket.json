@@ -1,0 +1,303 @@
+{
+  "id": "20261012-79e733",
+  "title": "전기일자 기준 플랜트 저장위지별 수불부",
+  "status": "awaiting_review",
+  "currentStage": "analysis",
+  "stages": {
+    "analysis": {
+      "status": "review",
+      "review": {
+        "decision": "approve",
+        "send_back_to": "analysis",
+        "feedback": "",
+        "summary": "요구사항 분석 문서(01_analysis.md)가 완성됐습니다. 전기일자와 플랜트를 넣으면 플랜트·저장위치·자재·배치별로 '기초재고·입고·출고·기말재고'를 보여 주는 리포트로 정리했습니다. 배치는 배치관리 자재만 나누고, 계산 방식과 정답 기준은 SAP 표준 재고조회 화면(MB5B)에 맞췄습니다. 요청 내용이 모두 반영됐고 설계를 시작할 수 있는 수준이라 승인을 권합니다. 다만 현업 확인 사항 16건(하루만 조회할지 기간으로 조회할지, 품질검사·보류 재고 포함 여부, 입고 취소를 따로 보여 줄지 등)이 있습니다. 답이 없으면 문서에 적은 기본안대로 진행합니다."
+      },
+      "attempts": 1,
+      "directive": null,
+      "directives": [],
+      "startedAt": "2026-10-12T07:53:01.216Z",
+      "endedAt": null,
+      "verifications": [
+        {
+          "at": "2026-10-15T03:06:30.660Z",
+          "attempt": 1,
+          "status": "done",
+          "verdict": "warn",
+          "summary": "요청 원문 세 문장(전기일자 입력, 기초·입고·출고·기말 표시, 자재·배치 단위이고 배치는 배치관리 자재만)은 모두 기능 요구사항으로 옮겨졌고, 해석이 갈릴 만한 부분(하루인지 기간인지, 어떤 재고유형을 넣을지, 취소 전표 처리)도 현업 확인 질문으로 잘 드러나 있습니다. 언급한 SAP 테이블·프로그램·기존 Z 오브젝트가 시스템에 있는 것도 확인했습니다. 다만 요청에 없던 기능 몇 가지(자재유형·자재그룹 조건, MB51 이동, 레이아웃 저장, 백그라운드 실행, T-code)가 현업 확인 없이 '확정'으로 적혀 있고, 테이블 필드 단위는 시스템 도구의 한계로 확인하지 못했습니다. 승인은 가능하지만, 이 '확정' 표시는 고치는 것을 권합니다.",
+          "checks": [
+            {
+              "item": "요청 항목 → FR 반영 누락 여부",
+              "result": "ok",
+              "detail": "request.md는 세 줄입니다. ① 특정 전기일자 입력 → FR-01 ② 전기일 기초재고·입고·출고·전기일 재고 → FR-05·06·07, 3-2절 출력 12~15번 ③ 자재코드·배치 단위, 배치는 배치관리 자재만 → FR-03·04(MARC-XCHPF, 비배치 자재는 배치 공란). 제목의 '플랜트 저장위치별'도 FR-02·FR-03에 반영돼 있습니다. 빠진 항목은 없습니다."
+            },
+            {
+              "item": "첨부 자료 대조",
+              "result": "ok",
+              "detail": "work/20261012-79e733/ 안에는 request.md, 01_analysis.md, ticket.json만 있고 attachments 폴더가 없습니다. 대조할 화면 예시나 양식이 없습니다."
+            },
+            {
+              "item": "요청에 없는 기능을 '확정'으로 넣었는지",
+              "result": "warn",
+              "detail": "FR-02의 자재유형·자재그룹 조건, FR-15 MB51 이동, FR-20 레이아웃 저장, FR-21 T-code·백그라운드 실행은 요청에 없는데 상태가 '확정'입니다(2절 표, 요구사항 구성도). 우선순위는 '권장'이라 큰 문제는 아니지만, 현업이 요청한 범위로 오해될 수 있습니다. 반면 FR-17(이동유형별 세부)·FR-18(금액)·FR-19(기간 입력)은 '선택'으로 두고 Q7·Q9·Q1로 확인을 받게 해 적절합니다."
+            },
+            {
+              "item": "요청 해석의 타당성",
+              "result": "ok",
+              "detail": "'특정 전기일자'를 하루로 보고 기초 = 전날 마감, 기말 = 당일 마감으로 해석했습니다(가정 1). 수불부는 보통 기간 단위일 수 있다는 점을 Q1과 FR-19로 따로 드러냈습니다. 비배치 자재를 저장위치 합계 한 줄로 보여 주는 것도 원문 '배치는 배치관리하는 경우만'과 맞습니다."
+            },
+            {
+              "item": "계산 기준의 논리 일관성",
+              "result": "ok",
+              "detail": "4절의 역산식(기말 = 현재고 - 전기일 이후 순이동, 기초 = 기말 - 입고 + 출고)은 FR-07·FR-05·FR-08과 서로 맞습니다. 현재고에는 없고 전표에만 있는 행도 넣도록 행 집합을 MARD/MCHB 키 ∪ MSEG 키로 정한 점도 맞습니다. MB5B(RM07MLBD)와 결과가 같은지를 검증 기준으로 삼았습니다(NFR-02)."
+            },
+            {
+              "item": "SAP 오브젝트 존재 확인",
+              "result": "ok",
+              "detail": "abap-mrd SearchObject로 직접 확인했습니다. MSEG(MB), MARD·MCHB(MG), MARDH·MCHBH(MGA), 프로그램 RM07MLBD, 권한 객체 M_MSEG_WMB, Z_MM_PERIOD_STOCK_GET/GET2/GET3, Z_MM_PERIOD_DETAIL_STOCK_GET(ZMMD), 클래스 ZHCL_MM_BATCH_STOCK이 모두 있습니다. MATDOC*는 없어 ECC 시스템이라는 판단과도 맞습니다."
+            },
+            {
+              "item": "테이블 필드 단위 존재 확인",
+              "result": "warn",
+              "detail": "GetTable(MSEG)을 호출하면 ExceptionResourceNotFound가 나서 필드 목록을 조회할 수 없습니다. MSEG-BUDAT_MKPF, MCHB-CEINM/CUMLM, MARC-XCHPF 같은 필드는 검증 세션에서도 확인하지 못했습니다. 산출물 6행·7절·8절에 '시스템 미확인, SE11로 확인'이라고 적혀 있고 Q15에도 올라 있어 투명하게 공개돼 있습니다. 다만 확인이 끝난 상태는 아닙니다."
+            },
+            {
+              "item": "모호한 부분의 가정·현업 확인 정리",
+              "result": "ok",
+              "detail": "9절 가정 8개와 10절 질문 Q1~Q16으로 정리돼 있습니다. 질문마다 '답이 없을 때 기본안'과 관련 FR이 붙어 있습니다. 하루/기간, 재고유형 범위, 재고유형 변경(321 등), 취소 전표, 특수재고, 2단계 이전, 0인 행 처리, 배치 레벨 설정, 기존 Z 재사용 여부까지 다룹니다."
+            },
+            {
+              "item": "재고유형 범위 질문의 완결성",
+              "result": "warn",
+              "detail": "Q2·FR-09의 재고유형 후보에 반품 보류재고(MARD-RETME / MCHB-CRETM, 표준 ECC 필드)가 빠져 있습니다. 필드 조회가 안 돼 이 시스템에서 쓰이는지는 확인하지 못했습니다. MB5B 결과와 맞추려면 포함 여부를 함께 물어 두는 편이 안전합니다."
+            }
+          ],
+          "directive": "01_analysis.md를 다음과 같이 보완해 주세요. ① FR-02의 자재유형·자재그룹 조건, FR-15, FR-20, FR-21은 요청 원문에 없는 항목이므로 상태를 '확정'에서 '제안(현업 확인)'으로 바꾸고, 요구사항 구성도(mindmap)의 표시도 같이 고쳐 주세요. 필요하면 Q 항목을 하나 추가해 현업 동의를 받게 해 주세요. ② FR-09와 Q2의 재고유형 후보에 반품 보류재고(MARD-RETME / MCHB-CRETM, 시스템 미확인)를 넣고, MB5B와 맞추는 기준으로 포함할지를 물어 주세요. ③ 필드 단위 미확인 상태(MSEG-BUDAT_MKPF, MCHB 재고유형 필드, MARC-XCHPF)는 지금처럼 유지하되, 설계 착수 전 SE11 확인 항목으로 목록을 따로 묶어 주세요.",
+          "send_back_to": "analysis"
+        }
+      ]
+    },
+    "design": {
+      "status": "pending",
+      "review": null,
+      "attempts": 0,
+      "directive": null,
+      "directives": [],
+      "startedAt": null,
+      "endedAt": null
+    },
+    "development": {
+      "status": "pending",
+      "review": null,
+      "attempts": 0,
+      "directive": null,
+      "directives": [],
+      "startedAt": null,
+      "endedAt": null
+    },
+    "test": {
+      "status": "pending",
+      "review": null,
+      "attempts": 0,
+      "directive": null,
+      "directives": [],
+      "startedAt": null,
+      "endedAt": null
+    },
+    "deploy": {
+      "status": "pending",
+      "review": null,
+      "attempts": 0,
+      "directive": null,
+      "directives": [],
+      "startedAt": null,
+      "endedAt": null
+    }
+  },
+  "revisionCount": 0,
+  "deployConfig": null,
+  "deployResult": null,
+  "logs": [
+    {
+      "at": "2026-10-12T07:53:01.208Z",
+      "agent": "PL",
+      "text": "새 개발 요청을 접수했습니다. 요구사항 분석부터 진행합니다."
+    },
+    {
+      "at": "2026-10-12T07:53:01.216Z",
+      "agent": "요구사항 분석 담당",
+      "text": "작업을 시작합니다."
+    },
+    {
+      "at": "2026-10-12T07:53:01.221Z",
+      "agent": "PL",
+      "text": "sap-analyst 에이전트에게 작업을 지시했습니다."
+    },
+    {
+      "at": "2026-10-12T07:53:18.688Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: GetTable MKPF"
+    },
+    {
+      "at": "2026-10-12T07:53:18.944Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: GetTable MSEG"
+    },
+    {
+      "at": "2026-10-12T07:53:19.350Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: GetTable MARD"
+    },
+    {
+      "at": "2026-10-12T07:53:19.750Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: GetTable MCHB"
+    },
+    {
+      "at": "2026-10-12T07:53:20.097Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject MATDOC 10"
+    },
+    {
+      "at": "2026-10-12T07:53:25.871Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject MKPF 10"
+    },
+    {
+      "at": "2026-10-12T07:53:26.138Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: GetStructure MSEG"
+    },
+    {
+      "at": "2026-10-12T07:53:26.339Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: GetTypeInfo MSEG"
+    },
+    {
+      "at": "2026-10-12T07:53:31.829Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject MARDH 5"
+    },
+    {
+      "at": "2026-10-12T07:53:32.378Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject MCHBH 5"
+    },
+    {
+      "at": "2026-10-12T07:53:32.929Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject NSDM_V_MSEG* 5"
+    },
+    {
+      "at": "2026-10-12T07:53:33.496Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject MSEG 5"
+    },
+    {
+      "at": "2026-10-12T07:53:33.993Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject MCHB 5"
+    },
+    {
+      "at": "2026-10-12T07:53:34.438Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject T156* 20"
+    },
+    {
+      "at": "2026-10-12T07:53:40.281Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: GetTransaction MB5B"
+    },
+    {
+      "at": "2026-10-12T07:53:40.829Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject MBEW* 10"
+    },
+    {
+      "at": "2026-10-12T07:53:41.382Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject MCH1 5"
+    },
+    {
+      "at": "2026-10-12T07:53:41.783Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: GetTypeInfo XCHPF"
+    },
+    {
+      "at": "2026-10-12T07:53:42.234Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: GetTypeInfo SHKZG"
+    },
+    {
+      "at": "2026-10-12T07:53:42.472Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: GetTypeInfo BUDAT"
+    },
+    {
+      "at": "2026-10-12T07:53:49.813Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject MATDOC* 5"
+    },
+    {
+      "at": "2026-10-12T07:53:50.294Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject RM07MLBD 5"
+    },
+    {
+      "at": "2026-10-12T07:54:00.882Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject M_MSEG* 20"
+    },
+    {
+      "at": "2026-10-12T07:54:01.388Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject T001L 5"
+    },
+    {
+      "at": "2026-10-12T07:54:01.984Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject Z*MM*STOCK* 20"
+    },
+    {
+      "at": "2026-10-12T07:54:02.377Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject ZMM* 50"
+    },
+    {
+      "at": "2026-10-12T07:54:07.677Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject MARD 5"
+    },
+    {
+      "at": "2026-10-12T07:54:08.525Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject BAPI_MATERIAL_STOCK_REQ_LIST 3"
+    },
+    {
+      "at": "2026-10-12T07:54:09.070Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject MSEG_BWART* 5"
+    },
+    {
+      "at": "2026-10-12T07:56:49.783Z",
+      "agent": "요구사항 분석 담당",
+      "text": "✏️ 01_analysis.md 작성"
+    },
+    {
+      "at": "2026-10-12T07:57:16.921Z",
+      "agent": "PL",
+      "text": "📨 팀장님께 요구사항 분석 담당 결과를 보고드립니다 (권고: 승인) — 요구사항 분석 문서(01_analysis.md)가 완성됐습니다. 전기일자와 플랜트를 넣으면 플랜트·저장위치·자재·배치별로 '기초재고·입고·출고·기말재고'를 보여 주는 리포트로 정리했습니다. 배치는 배치관리 자재만 나누고, 계산 방식과 정답 기준은 SAP 표준 재고조회 화면(MB5B)에 맞췄습니다. 요청 내용이 모두 반영됐고 설계를 시작할 수 있는 수준이라 승인을 권합니다. 다만 현업 확인 사항 16건(하루만 조회할지 기간으로 조회할지, 품질검사·보류 재고 포함 여부, 입고 취소를 따로 보여 줄지 등)이 있습니다. 답이 없으면 문서에 적은 기본안대로 진행합니다."
+    },
+    {
+      "at": "2026-10-15T03:06:30.661Z",
+      "agent": "팀장",
+      "text": "🤖 요구사항 분석 담당 산출물 AI 검증을 요청했습니다."
+    },
+    {
+      "at": "2026-10-15T03:07:41.568Z",
+      "agent": "AI 검증",
+      "text": "🤖 요구사항 분석 담당 검증 결과: 주의 (확인 필요 3건) — 요청 원문 세 문장(전기일자 입력, 기초·입고·출고·기말 표시, 자재·배치 단위이고 배치는 배치관리 자재만)은 모두 기능 요구사항으로 옮겨졌고, 해석이 갈릴 만한 부분(하루인지 기간인지, 어떤 재고유형을 넣을지, 취소 전표 처리)도 현업 확인 질문으로 잘 드러나 있습니다. 언급한 SAP 테이블·프로그램·기존 Z 오브젝트가 시스템에 있는 것도 확인했습니다. 다만 요청에 없던 기능 몇 가지(자재유형·자재그룹 조건, MB51 이동, 레이아웃 저장, 백그라운드 실행, T-code)가 현업 확인 없이 '확정'으로 적혀 있고, 테이블 필드 단위는 시스템 도구의 한계로 확인하지 못했습니다. 승인은 가능하지만, 이 '확정' 표시는 고치는 것을 권합니다."
+    }
+  ],
+  "createdAt": "2026-10-12T07:53:01.198Z",
+  "updatedAt": "2026-10-15T03:07:41.568Z"
+}
