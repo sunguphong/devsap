@@ -408,7 +408,7 @@ function renderTicket(t) {
     <div class="team">${members}</div>
     ${gate}${crCard}${deploy}
     <div class="grid2">
-      <div class="card"><h3 class="row" style="justify-content:space-between">${team[selectedStage].name} 산출물<span class="row" style="gap:6px">${canVerify ? verifyBtn(selectedStage, "verifyStage").replace("<button ", '<button class="small" ') : ""}<button id="stagePptx" class="small">⬇️ PPTX</button></span></h3>${review}${stageVerify}${directives}<div class="out">${output}</div></div>
+      <div class="card"><h3 class="row" style="justify-content:space-between">${team[selectedStage].name} 산출물<span class="row" style="gap:6px">${canVerify ? verifyBtn(selectedStage, "verifyStage").replace("<button ", '<button class="small" ') : ""}${selectedStage === "test" ? '<button id="testResult" class="small">⬇️ 테스트결과서</button>' : ""}<button id="stagePptx" class="small">⬇️ PPTX</button></span></h3>${review}${stageVerify}${directives}<div class="out">${output}</div></div>
       <div>
         <div class="card"><h3>📚 배운 점 <span class="sub">지식 위키</span></h3>
           ${t.lessons?.docs.length
@@ -429,6 +429,13 @@ function renderTicket(t) {
     btn.textContent = "만드는 중…";
     try { await downloadStagePptx(t, selectedStage); } catch (err) { alert(err.message ?? err); }
     finally { btn.disabled = false; btn.textContent = "⬇️ PPTX"; }
+  });
+  $("#testResult")?.addEventListener("click", async (e) => {
+    const btn = e.currentTarget;
+    btn.disabled = true;
+    btn.textContent = "만드는 중…";
+    try { await downloadTestResult(t); } catch (err) { alert(err.message ?? err); }
+    finally { btn.disabled = false; btn.textContent = "⬇️ 테스트결과서"; }
   });
   $("#detail .team").addEventListener("click", (e) => {
     const m = e.target.closest("[data-stage]");

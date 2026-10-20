@@ -1,5 +1,5 @@
 // SAP ADT(ABAP Development Tools) REST API 클라이언트 - 개발계 반영 전용
-export type ObjectType = "PROG" | "CLAS";
+export type ObjectType = "PROG" | "INCL" | "CLAS";
 export type SourcePart = "main" | "testclasses";
 
 export interface SapConfig {
@@ -24,7 +24,13 @@ const decodeXml = (s: string) =>
 
 export function objectUri(type: ObjectType, name: string): string {
   const n = encodeURIComponent(name.toLowerCase());
-  return type === "PROG" ? `/sap/bc/adt/programs/programs/${n}` : `/sap/bc/adt/oo/classes/${n}`;
+  return type === "PROG" ? `/sap/bc/adt/programs/programs/${n}` : type === "INCL" ? `/sap/bc/adt/programs/includes/${n}` : `/sap/bc/adt/oo/classes/${n}`;
+}
+
+/** include는 메인 프로그램 문맥에서 활성화해야 하므로 ?context= 를 붙인다 */
+function activationUri(o: { type: ObjectType; name: string; mainProgram?: string }): string {
+  const uri = objectUri(o.type, o.name);
+  return o.type === "INCL" && o.mainProgram ? `${uri}?context=${encodeURIComponent(objectUri("PROG", o.mainProgram))}` : uri;
 }
 
 interface Res {
@@ -99,16 +105,26 @@ export class AdtClient {
     AdtClient.fail(`${name} 존재 확인`, res);
   }
 
-  async create(type: ObjectType, name: string, description: string, pkg: string, transport: string): Promise<void> {
+  /** 이미 있는 include가 SAP에 연결된 메인 프로그램 이름 (없으면 null) */
+  async includeMainProgram(name: string): Promise<string | null> {
+    const res = await this.req("GET", objectUri("INCL", name));
+    if (res.status !== 200) return null;
+    return res.text.match(/<include:contextRef\b[^>]*adtcore:name="([^"]+)"/)?.[1] ?? null;
+  }
+
+  async create(type: ObjectType, name: string, description: string, pkg: string, transport: string, mainProgram?: string): Promise<void> {
     const N = xmlEscape(name.toUpperCase());
     const D = xmlEscape(description.slice(0, 60));
     const common = `xmlns:adtcore="http://www.sap.com/adt/core" adtcore:description="${D}" adtcore:name="${N}" adtcore:masterLanguage="${this.cfg.language}" adtcore:responsible="${xmlEscape(this.cfg.user.toUpperCase())}"`;
     const pkgRef = `<adtcore:packageRef adtcore:name="${xmlEscape(pkg.toUpperCase())}"/>`;
+    const main = xmlEscape((mainProgram ?? "").toUpperCase());
     const body =
       type === "PROG"
         ? `<?xml version="1.0" encoding="UTF-8"?><program:abapProgram xmlns:program="http://www.sap.com/adt/programs/programs" ${common} adtcore:type="PROG/P">${pkgRef}</program:abapProgram>`
+        : type === "INCL"
+        ? `<?xml version="1.0" encoding="UTF-8"?><include:abapInclude xmlns:include="http://www.sap.com/adt/programs/includes" ${common} adtcore:type="PROG/I">${pkgRef}${main ? `<include:containerRef adtcore:name="${main}" adtcore:type="PROG/P" adtcore:uri="${objectUri("PROG", main)}"/>` : ""}</include:abapInclude>`
         : `<?xml version="1.0" encoding="UTF-8"?><class:abapClass xmlns:class="http://www.sap.com/adt/oo/classes" ${common} adtcore:type="CLAS/OC" class:final="true" class:visibility="public">${pkgRef}<class:include adtcore:name="CLAS/OC" adtcore:type="CLAS/OC" class:includeType="testclasses"/><class:superClassRef/></class:abapClass>`;
-    const collection = type === "PROG" ? "/sap/bc/adt/programs/programs" : "/sap/bc/adt/oo/classes";
+    const collection = type === "PROG" ? "/sap/bc/adt/programs/programs" : type === "INCL" ? "/sap/bc/adt/programs/includes" : "/sap/bc/adt/oo/classes";
     const res = await this.req("POST", collection, { body, contentType: "application/*", query: transport ? { corrNr: transport } : {} });
     if (res.status >= 300) AdtClient.fail(`${name} 생성`, res);
   }
@@ -173,9 +189,9 @@ export class AdtClient {
   }
 
   /** 활성화 후 오류/경고 메시지를 사람이 읽을 수 있는 형태로 돌려준다 */
-  async activate(objects: { type: ObjectType; name: string }[]): Promise<{ ok: boolean; messages: string[] }> {
+  async activate(objects: { type: ObjectType; name: string; mainProgram?: string }[]): Promise<{ ok: boolean; messages: string[] }> {
     const refs = objects
-      .map((o) => `<adtcore:objectReference adtcore:uri="${objectUri(o.type, o.name)}" adtcore:name="${xmlEscape(o.name.toUpperCase())}"/>`)
+      .map((o) => `<adtcore:objectReference adtcore:uri="${xmlEscape(activationUri(o))}" adtcore:name="${xmlEscape(o.name.toUpperCase())}"/>`)
       .join("");
     const body = `<?xml version="1.0" encoding="UTF-8"?><adtcore:objectReferences xmlns:adtcore="http://www.sap.com/adt/core">${refs}</adtcore:objectReferences>`;
     const res = await this.req("POST", "/sap/bc/adt/activation", { body, contentType: "application/xml", query: { method: "activate", preauditRequested: "true" } });

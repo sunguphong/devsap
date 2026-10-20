@@ -81,27 +81,59 @@ interface DevObject {
   description: string;
   source: string;
   testSource: string | null;
+  /** include의 메인 프로그램 (반영 때 SAP에 연결된 값으로 바뀔 수 있다) */
+  mainProgram?: string;
 }
 
-function devObjects(id: string): DevObject[] {
+// 화면 플로우 로직(PROCESS BEFORE OUTPUT ...)은 ADT REST로 반영할 수 없어 SE51 수동 반영으로 돌린다
+const isFlowLogic = (source: string) => /^\s*PROCESS\s+(BEFORE\s+OUTPUT|AFTER\s+INPUT)\b/im.test(source);
+
+function srcFiles(id: string): { file: string; source: string }[] {
   const srcDir = path.join(WORK_DIR, id, "src");
   if (!fs.existsSync(srcDir)) return [];
   return fs
     .readdirSync(srcDir)
     .filter((f) => f.endsWith(".abap") && !f.endsWith(".testclasses.abap"))
-    .map((f) => {
-      const name = f.slice(0, -".abap".length).toUpperCase();
-      const source = fs.readFileSync(path.join(srcDir, f), "utf8");
-      const testFile = path.join(srcDir, `${f.slice(0, -".abap".length)}.testclasses.abap`);
-      const shorttext = source.match(/shorttext[^>]*>([^<]+)</)?.[1] ?? source.match(/^\*&\s*Report\s+\S+\s*[-:]?\s*(.+)$/im)?.[1];
-      return {
-        type: (/^\s*CLASS\s+\S+\s+DEFINITION/im.test(source) ? "CLAS" : "PROG") as ObjectType,
-        name,
-        description: (shorttext?.trim() || name).slice(0, 60),
-        source,
-        testSource: fs.existsSync(testFile) ? fs.readFileSync(testFile, "utf8") : null,
-      };
-    });
+    .map((f) => ({ file: f, source: fs.readFileSync(path.join(srcDir, f), "utf8") }));
+}
+
+function objectType(source: string): ObjectType {
+  if (/^\s*CLASS\s+\S+\s+DEFINITION/im.test(source)) return "CLAS";
+  if (/^\s*(REPORT|PROGRAM)\b/im.test(source)) return "PROG";
+  return "INCL";
+}
+
+function devObjects(id: string): DevObject[] {
+  const srcDir = path.join(WORK_DIR, id, "src");
+  const files = srcFiles(id).filter((f) => !isFlowLogic(f.source));
+  const objs = files.map(({ file: f, source }): DevObject => {
+    const name = f.slice(0, -".abap".length).toUpperCase();
+    const testFile = path.join(srcDir, `${f.slice(0, -".abap".length)}.testclasses.abap`);
+    const shorttext = source.match(/shorttext[^>]*>([^<]+)</)?.[1] ?? source.match(/^\*&\s*Report\s+\S+\s*[-:]?\s*(.+)$/im)?.[1];
+    return {
+      type: objectType(source),
+      name,
+      description: (shorttext?.trim() || name).slice(0, 60),
+      source,
+      testSource: fs.existsSync(testFile) ? fs.readFileSync(testFile, "utf8") : null,
+    };
+  });
+  // include의 메인 프로그램: 같이 올리는 프로그램 중 INCLUDE 하는 것 → 모듈풀 명명 규칙(MZXX0001F01 → SAPMZXX0001)
+  for (const o of objs.filter((x) => x.type === "INCL")) {
+    const includeStmt = new RegExp(`^\\s*INCLUDE\\s+${o.name}\\s*\\.`, "im");
+    const byName = o.name.match(/^(M\w+?)(TOP|[A-Z]\d\d)$/);
+    o.mainProgram = objs.find((p) => p.type === "PROG" && includeStmt.test(p.source))?.name ?? (byName ? `SAP${byName[1]}` : undefined);
+  }
+  // 메인 프로그램 → include → 클래스 순서로 만든다
+  const order: Record<ObjectType, number> = { PROG: 0, INCL: 1, CLAS: 2 };
+  return objs.sort((a, b) => order[a.type] - order[b.type]);
+}
+
+/** 웹앱이 반영하지 못해 SE51 등에서 직접 반영해야 하는 파일 */
+function manualFiles(id: string): string[] {
+  return srcFiles(id)
+    .filter((f) => isFlowLogic(f.source))
+    .map((f) => f.file);
 }
 
 export function approveDeploy(id: string, cfg: DeployConfig): void {
@@ -154,16 +186,29 @@ async function runDeploy(id: string): Promise<void> {
   }
 
   for (const o of objs) {
+    const mainNote = () => (o.type === "INCL" ? ` (메인 프로그램 ${o.mainProgram ?? "미확인"})` : "");
     if (!adt) {
-      note(`[시뮬레이션] ${o.type} ${o.name} 생성/저장 (소스 ${o.source.split("\n").length}줄${o.testSource ? ", 테스트 클래스 포함" : ""})`);
+      note(`[시뮬레이션] ${o.type} ${o.name}${mainNote()} 생성/저장 (소스 ${o.source.split("\n").length}줄${o.testSource ? ", 테스트 클래스 포함" : ""})`);
       continue;
     }
     const existed = await adt.exists(o.type, o.name);
-    if (!existed) await adt.create(o.type, o.name, o.description, pkg, transport);
+    if (o.type === "INCL") {
+      // 이미 있는 include는 SAP에 연결된 메인 프로그램을 그대로 쓴다
+      if (existed) o.mainProgram = (await adt.includeMainProgram(o.name)) ?? o.mainProgram;
+      else {
+        if (!o.mainProgram) throw new Error(`${o.name}: 메인 프로그램을 알 수 없어 include를 만들 수 없습니다. 메인 프로그램 소스(INCLUDE ${o.name}.)를 함께 올려 주세요.`);
+        if (!objs.some((p) => p.type === "PROG" && p.name === o.mainProgram) && !(await adt.exists("PROG", o.mainProgram)))
+          throw new Error(`${o.name}: 메인 프로그램 ${o.mainProgram}이(가) SAP에 없습니다. 메인 프로그램을 먼저 만들거나 소스를 함께 올려 주세요.`);
+      }
+    }
+    if (!existed) await adt.create(o.type, o.name, o.description, pkg, transport, o.mainProgram);
     await adt.writeSource(o.type, o.name, "main", o.source, transport);
     if (o.type === "CLAS" && o.testSource) await adt.writeSource(o.type, o.name, "testclasses", o.testSource, transport);
-    note(`${o.type} ${o.name} ${existed ? "소스 갱신" : "신규 생성"} 완료${o.type === "CLAS" && o.testSource ? " (테스트 클래스 포함)" : ""}`);
+    note(`${o.type} ${o.name}${mainNote()} ${existed ? "소스 갱신" : "신규 생성"} 완료${o.type === "CLAS" && o.testSource ? " (테스트 클래스 포함)" : ""}`);
   }
+
+  const manual = manualFiles(id);
+  if (manual.length) note(`⚠️ 수동 반영 필요 (ADT로 반영 불가): ${manual.join(", ")} — SE51 화면 플로우 로직은 화면 레이아웃·GUI Status와 함께 직접 반영해 주세요.`);
 
   let ok = true;
   if (adt) {
