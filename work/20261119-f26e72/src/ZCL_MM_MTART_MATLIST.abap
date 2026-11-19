@@ -6,16 +6,31 @@ CLASS zcl_mm_mtart_matlist DEFINITION
 *----------------------------------------------------------------------*
 * 클래스  : ZCL_MM_MTART_MATLIST
 * 내역    : [MM] 자재유형별 자재 리스트 조회 로직
-* 호출    : FM Z_MM_GET_MATERIAL_LIST (함수 그룹 ZFGMM71, RFC)
+* 호출    : FM Z_MM_GET_MATERIAL_LIST (함수 그룹 ZFGMM71, 일반 함수 모듈)
 * 요청 ID : 20261119-f26e72
 * 처리    : 입력 정규화 -> 입력 누락 검사 -> T134 존재 검사
 *           -> (T134-BEGRU 있으면) M_MATE_MAR 권한 점검
 *           -> MARA 조회 -> MAKT FOR ALL ENTRIES -> 정렬/최대건수
 *           -> ET_LIST / EV_COUNT / ES_RETURN(BAPIRET2 단건)
+* 출력타입: TY_LIST / TT_LIST 는 FM Z_MM_GET_MATERIAL_LIST 의 ET_LIST
+*           파라미터 타입이다(신규 DDIC 구조·테이블 타입 없음).
+*           FM·호출 프로그램이 참조하므로 이름·필드 변경 금지.
+*           필드 추가는 맨 뒤에만 한다.
 * 문법    : ABAP 7.40 SP05 이상 (New Open SQL). SP08 이상 구문 미사용
 * 읽기 전용: DB 갱신/COMMIT 없음
 *----------------------------------------------------------------------*
   PUBLIC SECTION.
+
+    "FM 출력 행: 자재코드, 자재내역, 기본단위 (내부 형식)
+    TYPES:
+      BEGIN OF ty_list,
+        matnr TYPE matnr,
+        maktx TYPE maktx,
+        meins TYPE meins,
+      END OF ty_list.
+    "FM 출력 테이블 (Z_MM_GET_MATERIAL_LIST-ET_LIST)
+    TYPES:
+      tt_list TYPE STANDARD TABLE OF ty_list WITH DEFAULT KEY.
 
     TYPES:
       BEGIN OF ty_mara,
@@ -34,7 +49,7 @@ CLASS zcl_mm_mtart_matlist DEFINITION
     TYPES:
       tt_lvorm_range TYPE RANGE OF mara-lvorm.
 
-    "메시지 클래스와 번호 (SE91 ZMMM3)
+    "메시지 클래스와 번호 (ZMMM3)
     CONSTANTS c_msgid          TYPE symsgid VALUE 'ZMMM3'.
     CONSTANTS c_msg_no_input   TYPE symsgno VALUE '001'.
     CONSTANTS c_msg_invalid    TYPE symsgno VALUE '002'.
@@ -58,7 +73,7 @@ CLASS zcl_mm_mtart_matlist DEFINITION
 
     METHODS execute
       EXPORTING
-        !et_list   TYPE zttmm3600
+        !et_list   TYPE tt_list
         !ev_count  TYPE i
         !es_return TYPE bapiret2.
 
@@ -98,7 +113,7 @@ CLASS zcl_mm_mtart_matlist DEFINITION
         !it_makt      TYPE tt_makt
         !iv_max_rows  TYPE i
       EXPORTING
-        !et_list      TYPE zttmm3600
+        !et_list      TYPE tt_list
         !ev_truncated TYPE abap_bool.
 
     CLASS-METHODS decide_return
@@ -255,7 +270,7 @@ CLASS zcl_mm_mtart_matlist IMPLEMENTATION.
 
   METHOD normalize_spras.
 *----------------------------------------------------------------------*
-* 공란이면 로그온 언어 (RFC 호출이면 RFC 로그온 언어)
+* 공란이면 로그온 언어
 *----------------------------------------------------------------------*
     IF iv_spras IS INITIAL.
       rv_spras = sy-langu.
@@ -315,7 +330,7 @@ CLASS zcl_mm_mtart_matlist IMPLEMENTATION.
 *----------------------------------------------------------------------*
     DATA ls_mara LIKE LINE OF it_mara.
     DATA ls_makt LIKE LINE OF it_makt.
-    DATA ls_list LIKE LINE OF et_list.
+    DATA ls_list TYPE ty_list.
     DATA l_from  TYPE i.
 
     CLEAR: et_list, ev_truncated.

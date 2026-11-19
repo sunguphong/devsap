@@ -417,11 +417,11 @@ function renderTicket(t) {
 
   $("#detail").innerHTML = `
     <h2>${esc(t.title)} <span class="badge ${t.status}">${STATUS[t.status] ?? t.status}</span></h2>
-    <div class="sub">${t.id}${t.system ? ` · 🖥 ${esc(t.system)}` : ""} · 등록 ${new Date(t.createdAt).toLocaleString()} · 팀장 수정 지시 ${t.revisionCount}회 · 폴더 work/${t.id}/</div>
+    <div class="sub">${t.id}${t.system ? ` · 🖥 ${esc(t.system)} <span class="sysrel" data-sysrel="${esc(t.system)}"></span>` : ""} · 등록 ${new Date(t.createdAt).toLocaleString()} · 팀장 수정 지시 ${t.revisionCount}회 · 폴더 work/${t.id}/</div>
     <div class="team">${members}</div>
     ${gate}${crCard}${deploy}
     <div class="grid2">
-      <div class="card"><h3 class="row" style="justify-content:space-between">${team[selectedStage].name} 산출물<span class="row" style="gap:6px">${canVerify ? verifyBtn(selectedStage, "verifyStage").replace("<button ", '<button class="small" ') : ""}${selectedStage === "test" ? '<button id="testResult" class="small">⬇️ 테스트결과서</button>' : ""}${deckBtn}<button id="stagePptx" class="small" title="산출물 원문을 그대로 옮긴 상세 자료">⬇️ 원문 PPTX</button></span></h3>${review}${stageVerify}${directives}<div class="out">${output}</div></div>
+      <div class="card"><h3 class="row" style="justify-content:space-between">${team[selectedStage].name} 산출물<span class="row" style="gap:6px">${canVerify ? verifyBtn(selectedStage, "verifyStage").replace("<button ", '<button class="small" ') : ""}${selectedStage === "test" ? '<button id="testResult" class="small">⬇️ 테스트결과서</button>' : ""}${deckBtn}<button id="stagePptx" class="small" title="산출물 원문을 그대로 옮긴 상세 자료">⬇️ 원문 PPTX</button></span></h3>${review}${stageVerify}${directives}${selectedStage === "design" ? designNotice(t) : ""}<div class="out">${output}</div></div>
       <div>
         <div class="card"><h3>📚 배운 점 <span class="sub">지식 위키</span></h3>
           ${t.lessons?.docs.length
@@ -435,6 +435,7 @@ function renderTicket(t) {
         <div class="card"><h3>개발 요청 원문</h3><div class="md">${md(t.request)}</div>${attCard}${applied.length ? `<h3 style="margin-top:12px">반영된 요구사항 변경</h3><ul class="lessons">${applied.map((c) => `<li><b>${c.id}</b> ${esc(c.text)} <span class="sub">${c.decidedAt ? new Date(c.decidedAt).toLocaleDateString() : ""}</span></li>`).join("")}</ul>` : ""}</div>
       </div>
     </div>`;
+  fillReleases($("#detail"));
 
   $("#stagePptx").addEventListener("click", async (e) => {
     const btn = e.currentTarget;
@@ -684,3 +685,44 @@ $("#logoutBtn").addEventListener("click", async () => {
   await fetch("/logout", { method: "POST" });
   location.href = "/login";
 });
+
+// ---------- 접속 시스템 SAP_BASIS 버전 (서버가 CVERS를 조회해 캐시) ----------
+const releaseCache = {};
+const sysRelease = (name) =>
+  (releaseCache[name] ??= api(`/api/systems/${encodeURIComponent(name)}/release`).catch((e) => ({ value: null, error: e.message })));
+const isBelow750 = (v) => { const [ma, mi] = v.release.split(".").map(Number); return ma < 7 || (ma === 7 && mi < 50); };
+
+/** data-sysrel / data-sysrel-notice 자리를 실제 버전으로 채운다 (상세 화면을 그린 뒤 호출) */
+function fillReleases(root = document) {
+  root.querySelectorAll("[data-sysrel]").forEach(async (el) => {
+    el.textContent = "· SAP_BASIS 확인 중…";
+    const r = await sysRelease(el.dataset.sysrel);
+    el.textContent = r.value ? `· SAP_BASIS ${r.value.label}` : "· SAP_BASIS 확인 불가";
+    el.title = r.value ? "CVERS(설치 컴포넌트 버전) 조회 결과" : r.error || "";
+    el.classList.toggle("old", !!r.value && isBelow750(r.value));
+  });
+  root.querySelectorAll("[data-sysrel-notice]").forEach(async (el) => {
+    const r = await sysRelease(el.dataset.sysrelNotice);
+    const v = r.value;
+    el.querySelector(".notice-t").textContent = `설계 시 확인: 대상 시스템 ${el.dataset.sysrelNotice}${v ? ` · SAP_BASIS ${v.label}` : ""}`;
+    el.querySelector(".notice-head").innerHTML = !v
+      ? `ADT로 구조·테이블 타입을 만들려면 SAP_BASIS <b>7.50 이상</b>이어야 합니다. 버전을 조회하지 못했습니다 (${esc(r.error || "")}) — 시스템 → 상태 → 구성요소 정보, 또는 SE16 CVERS로 확인해 주세요.`
+      : isBelow750(v)
+      ? `ABAP 플랫폼 버전은 SAP_BASIS로 판단합니다. 결과가 <b>${esc(v.label)}</b>이라서, ADT로 구조·테이블 타입을 만들 수 있는 <b>7.50 이상에 해당하지 않습니다.</b>`
+      : `ABAP 플랫폼 버전은 SAP_BASIS로 판단합니다. 결과가 <b>${esc(v.label)}</b>로 7.50 이상이지만, 보드의 개발계 반영 기능은 아직 구조·테이블 타입을 만들지 않으므로 SE11 수작업입니다.`;
+  });
+}
+
+// ---------- 설계 단계 안내: 대상 시스템의 ABAP 릴리스와 ADT 자동 생성 한계 ----------
+function designNotice(t) {
+  const sys = t.system || status?.system || "";
+  return `<div class="notice" data-sysrel-notice="${esc(sys)}">
+    <div class="notice-ico">⚠️</div>
+    <div><div class="notice-t">설계 시 확인: 대상 시스템 ${esc(sys || "(미지정)")}</div>
+      <div class="notice-head">SAP_BASIS 버전 확인 중…</div>
+      <ul>
+        <li><b>SE11 수작업</b>: 구조·테이블 타입·데이터 요소·도메인·테이블 — 개발계 반영 승인 <b>전에</b> 먼저 만들어야 클래스·함수가 활성화됩니다.</li>
+        <li><b>자동 생성</b>: 프로그램·인클루드·클래스·함수 그룹·함수 모듈·메시지 클래스 (개발계 반영 승인 시)</li>
+      </ul></div>
+  </div>`;
+}

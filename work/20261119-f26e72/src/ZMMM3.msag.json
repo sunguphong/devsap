@@ -1,0 +1,11 @@
+{
+  "description": "[MM] 자재마스터 조회 공통 메시지",
+  "messages": [
+    {"no": "001", "text": "자재유형을 입력하십시오.", "selfExplanatory": true},
+    {"no": "002", "text": "자재유형 &1 이(가) 존재하지 않습니다.", "selfExplanatory": true},
+    {"no": "003", "text": "자재유형 &1 에 대한 조회 권한이 없습니다.", "selfExplanatory": true},
+    {"no": "004", "text": "자재유형 &1 에 해당하는 자재가 없습니다.", "selfExplanatory": true},
+    {"no": "005", "text": "자재유형 &1 자재 &2 건이 조회되었습니다.", "selfExplanatory": true},
+    {"no": "006", "text": "최대 &1 건까지만 반환했습니다. 조회 조건에 맞는 자재가 더 있습니다.", "selfExplanatory": true}
+  ]
+}

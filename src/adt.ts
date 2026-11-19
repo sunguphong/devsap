@@ -106,6 +106,24 @@ export class AdtClient {
     return `SAP 접속 성공 (${this.cfg.url}, 클라이언트 ${this.cfg.client})`;
   }
 
+  /** 설치 컴포넌트 버전(CVERS)에서 SAP_BASIS 릴리스·SP를 읽는다 (데이터 미리보기, 읽기 전용). 예: { release: "7.40", sp: 30 } */
+  async basisRelease(): Promise<{ release: string; sp: number } | null> {
+    const res = await this.req("POST", "/sap/bc/adt/datapreview/ddic", {
+      body: "SELECT * FROM CVERS",
+      contentType: "text/plain",
+      accept: "application/xml, application/vnd.sap.adt.datapreview.table.v1+xml",
+      query: { rowNumber: "500", ddicEntityName: "CVERS" },
+    });
+    if (res.status !== 200) AdtClient.fail("SAP_BASIS 버전 조회", res);
+    const col = (name: string) =>
+      [...(res.text.match(new RegExp(`dataPreview:name="${name}"[\\s\\S]*?<dataPreview:dataSet>([\\s\\S]*?)</dataPreview:dataSet>`))?.[1] ?? "").matchAll(/<dataPreview:data>([^<]*)<\/dataPreview:data>/g)].map((m) => m[1].trim());
+    const comps = col("COMPONENT");
+    const i = comps.indexOf("SAP_BASIS");
+    if (i < 0) return null;
+    const rel = col("RELEASE")[i] ?? "";
+    return { release: /^\d{3}$/.test(rel) ? `${rel[0]}.${rel.slice(1)}` : rel, sp: Number(col("EXTRELEASE")[i] ?? 0) };
+  }
+
   async exists(type: ObjectType, name: string): Promise<boolean> {
     const res = await this.req("GET", objectUri(type, name));
     if (res.status === 200) return true;

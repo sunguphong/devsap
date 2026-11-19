@@ -1,8 +1,8 @@
 {
   "id": "20261119-f26e72",
   "title": "자재 리스트 조회 펀션 신규 개발",
-  "status": "failed",
-  "currentStage": "deploy",
+  "status": "in_progress",
+  "currentStage": "development",
   "stages": {
     "analysis": {
       "status": "approved",
@@ -92,30 +92,35 @@
         "decision": "approve",
         "send_back_to": "design",
         "feedback": "",
-        "summary": "설계서(02_design.md)는 분석서대로 함수 Z_MM_GET_MATERIAL_LIST를 설계했습니다. 자재유형을 넣으면 자재코드·자재내역·기본단위 목록과 처리 결과 메시지를 돌려줍니다. 실제 처리는 별도 클래스(ZCL_MM_MTART_MATLIST)가 맡고, 함수는 이 클래스를 부르기만 합니다. 이렇게 나눈 덕분에 자동 단위 테스트 15건을 붙일 수 있습니다. 새로 만드는 이름 6개는 모두 시스템에서 겹치는 것이 없는지 확인했습니다. 요청에 없던 기능은 [추가]로 표시했습니다. 그중 '삭제 표시 자재 기본 제외'는 현업 답에 따라 무엇이 바뀌는지 표로 정리해 두었습니다. 개발 단계는 이 설계서로 바로 진행할 수 있습니다. 다만 보드의 개발계 반영 기능은 클래스만 올릴 수 있습니다(반영 코드에서 확인함). 함수·함수 그룹·결과 구조·메시지는 SE11/SE37/SE91에서 사람이 직접 만들어야 하므로, 누가 어떤 순서로 만들지 미리 정해 주셔야 합니다."
+        "summary": "팀장님 지시에 따라 설계서(02_design.md)를 새 구조체·테이블 타입을 만들지 않는 방식으로 고쳤습니다. 결과 목록 형식(자재코드·자재내역·기본단위)은 함께 개발하는 프로그램 부품(클래스) 안에 정의하고, 펀션은 그 형식을 그대로 가져다 씁니다. 그래서 SE11 수작업이 없어지고, 펀션·함수 그룹·메시지·클래스 모두 보드의 개발계 반영으로 자동 생성됩니다. 대신 이 방식에서는 외부 시스템이 이 펀션을 직접 호출(RFC)할 수 없고, 같은 SAP 안의 프로그램에서만 부를 수 있습니다. RFC는 원래 요청에 없고 분석 단계에서 덧붙인 항목이라 이번 개발에서 뺐습니다. 나중에 외부 호출이 필요해지면 그때 구조체를 하나 만들어야 하고, 이 경우도 설계서에 정리해 두었습니다."
       },
-      "attempts": 1,
+      "attempts": 2,
       "directive": null,
-      "directives": [],
+      "directives": [
+        {
+          "at": "2026-11-19T06:32:13.105Z",
+          "text": "테이블이나 구조체 만들지 않고 할수 있는 방법으로 변경해줘"
+        }
+      ],
       "startedAt": "2026-11-19T05:36:13.776Z",
-      "endedAt": "2026-11-19T05:46:12.243Z"
+      "endedAt": "2026-11-19T06:41:51.576Z"
     },
     "development": {
-      "status": "approved",
+      "status": "running",
       "review": {
         "decision": "approve",
         "send_back_to": "development",
         "feedback": "",
         "summary": "개발 담당이 설계서대로 실제 처리 로직 클래스(ZCL_MM_MTART_MATLIST)와 함수(Z_MM_GET_MATERIAL_LIST)의 소스, 개발 결과서(03_development.md)를 만들었습니다. 자재유형을 넣으면 자재코드·자재내역·기본단위 목록과 결과 메시지를 돌려줍니다. 소스를 직접 읽어 보니 처리 순서(입력 확인 → 자재유형 확인 → 권한 확인 → 자재 조회 → 내역 붙이기)와 이 시스템 버전에서 쓰면 안 되는 문법 제한을 모두 지켰고, 설계와 다른 점 9건은 모두 동작이 같고 이유도 적혀 있습니다. 다만 SAP에 실제로 올려 문법 검사·활성화한 것은 아니므로 반영 때 처음 확인됩니다. 결과 구조·메시지·함수 그룹·함수는 사람이 SE11/SE91/SE37에서 직접 만들어야 하고, 특히 결과 구조(ZSMM3600/ZTTMM3600)를 먼저 만들지 않으면 클래스 반영이 실패하니 순서를 지켜 주셔야 합니다."
       },
-      "attempts": 1,
+      "attempts": 2,
       "directive": null,
       "directives": [],
-      "startedAt": "2026-11-19T05:46:12.267Z",
-      "endedAt": "2026-11-19T06:04:32.471Z"
+      "startedAt": "2026-11-19T06:41:51.595Z",
+      "endedAt": null
     },
     "test": {
-      "status": "approved",
+      "status": "pending",
       "review": {
         "decision": "approve",
         "send_back_to": "test",
@@ -125,29 +130,25 @@
       "attempts": 1,
       "directive": null,
       "directives": [],
-      "startedAt": "2026-11-19T06:04:32.488Z",
-      "endedAt": "2026-11-19T06:23:08.729Z"
+      "startedAt": null,
+      "endedAt": null
     },
     "deploy": {
-      "status": "failed",
+      "status": "pending",
       "review": null,
-      "attempts": 1,
+      "attempts": 2,
       "directive": null,
       "directives": [],
-      "startedAt": "2026-11-19T06:23:41.413Z",
+      "startedAt": null,
       "endedAt": null
     }
   },
-  "revisionCount": 0,
+  "revisionCount": 1,
   "deployConfig": {
     "package": "ZMMD",
-    "transport": ""
+    "transport": "MRDK913275"
   },
-  "deployResult": {
-    "mode": "",
-    "ok": false,
-    "text": "이송요청 생성 실패 (HTTP 400): Error during deserialization"
-  },
+  "deployResult": null,
   "system": "mrd-abap-rw",
   "logs": [
     {
@@ -999,8 +1000,198 @@
       "at": "2026-11-19T06:23:42.120Z",
       "agent": "적용",
       "text": "반영 중 오류: 이송요청 생성 실패 (HTTP 400): Error during deserialization"
+    },
+    {
+      "at": "2026-11-19T06:26:37.196Z",
+      "agent": "팀장",
+      "text": "개발계 반영을 승인했습니다."
+    },
+    {
+      "at": "2026-11-19T06:26:37.947Z",
+      "agent": "적용",
+      "text": "이송요청 MRDK913275 자동 생성 (\"[devsap 20261119-f26e72] 자재 리스트 조회 펀션 신규 개발\")"
+    },
+    {
+      "at": "2026-11-19T06:26:40.901Z",
+      "agent": "적용",
+      "text": "CLAS ZCL_MM_MTART_MATLIST 신규 생성 완료 (테스트 클래스 포함)"
+    },
+    {
+      "at": "2026-11-19T06:26:41.100Z",
+      "agent": "적용",
+      "text": "활성화 실패\n[E] zcl_mm_mtart_matlist/source/main (line 61): Type \"ZTTMM3600\" is unknown"
+    },
+    {
+      "at": "2026-11-19T06:26:41.105Z",
+      "agent": "적용",
+      "text": "⚠️ 반영 중 문제가 있습니다. 결과를 확인하고 수정 지시를 내려 주세요."
+    },
+    {
+      "at": "2026-11-19T06:32:13.105Z",
+      "agent": "팀장",
+      "text": "↩️ 설계 담당에게 수정 지시 — 테이블이나 구조체 만들지 않고 할수 있는 방법으로 변경해줘"
+    },
+    {
+      "at": "2026-11-19T06:32:13.117Z",
+      "agent": "설계 담당",
+      "text": "팀장 수정 지시를 반영해 다시 작업합니다."
+    },
+    {
+      "at": "2026-11-19T06:32:13.123Z",
+      "agent": "PL",
+      "text": "sap-designer 에이전트에게 작업을 지시했습니다."
+    },
+    {
+      "at": "2026-11-19T06:33:11.841Z",
+      "agent": "설계 담당",
+      "text": "🔎 SAP 조회: GetStructure BAPIRET2 10"
+    },
+    {
+      "at": "2026-11-19T06:33:12.121Z",
+      "agent": "설계 담당",
+      "text": "🔎 SAP 조회: GetTypeInfo BAPIRET2_T"
+    },
+    {
+      "at": "2026-11-19T06:33:27.723Z",
+      "agent": "설계 담당",
+      "text": "🔎 SAP 조회: SearchObject *MAKT* TTYP false 50"
+    },
+    {
+      "at": "2026-11-19T06:33:28.552Z",
+      "agent": "설계 담당",
+      "text": "🔎 SAP 조회: SearchObject *MAT*LIST* TTYP false 50"
+    },
+    {
+      "at": "2026-11-19T06:33:29.105Z",
+      "agent": "설계 담당",
+      "text": "🔎 SAP 조회: SearchObject ZCL_MM_MTART* false"
+    },
+    {
+      "at": "2026-11-19T06:33:29.559Z",
+      "agent": "설계 담당",
+      "text": "🔎 SAP 조회: SearchObject ZFGMM7* false"
+    },
+    {
+      "at": "2026-11-19T06:33:36.624Z",
+      "agent": "설계 담당",
+      "text": "🔎 SAP 조회: GetClass ZCL_MM_MTART_MATLIST 60"
+    },
+    {
+      "at": "2026-11-19T06:33:40.177Z",
+      "agent": "설계 담당",
+      "text": "🔎 SAP 조회: GetClass ZCL_MM_MTART_MATLIST"
+    },
+    {
+      "at": "2026-11-19T06:33:40.813Z",
+      "agent": "설계 담당",
+      "text": "🔎 SAP 조회: GetClass ZCL_MM_MTART_MATLIST inactive 40"
+    },
+    {
+      "at": "2026-11-19T06:33:46.344Z",
+      "agent": "설계 담당",
+      "text": "🔎 SAP 조회: SearchObject ZMMM* MSAG false"
+    },
+    {
+      "at": "2026-11-19T06:33:46.878Z",
+      "agent": "설계 담당",
+      "text": "🔎 SAP 조회: SearchObject Z*3600 false"
+    },
+    {
+      "at": "2026-11-19T06:33:47.322Z",
+      "agent": "설계 담당",
+      "text": "🔎 SAP 조회: SearchObject Z_MM_GET_MATERIAL* false"
+    },
+    {
+      "at": "2026-11-19T06:33:56.702Z",
+      "agent": "설계 담당",
+      "text": "🔎 SAP 조회: SearchObject *MAKTX* STRU false 40"
+    },
+    {
+      "at": "2026-11-19T06:33:57.508Z",
+      "agent": "설계 담당",
+      "text": "🔎 SAP 조회: SearchObject MATERIAL_LIST* false full 10"
+    },
+    {
+      "at": "2026-11-19T06:38:32.781Z",
+      "agent": "설계 담당",
+      "text": "✏️ 02_design.md 작성"
+    },
+    {
+      "at": "2026-11-19T06:39:03.385Z",
+      "agent": "PL",
+      "text": "📨 팀장님께 설계 담당 결과를 보고드립니다 (권고: 승인) — 팀장님 지시에 따라 설계서(02_design.md)를 새 구조체·테이블 타입을 만들지 않는 방식으로 고쳤습니다. 결과 목록 형식(자재코드·자재내역·기본단위)은 함께 개발하는 프로그램 부품(클래스) 안에 정의하고, 펀션은 그 형식을 그대로 가져다 씁니다. 그래서 SE11 수작업이 없어지고, 펀션·함수 그룹·메시지·클래스 모두 보드의 개발계 반영으로 자동 생성됩니다. 대신 이 방식에서는 외부 시스템이 이 펀션을 직접 호출(RFC)할 수 없고, 같은 SAP 안의 프로그램에서만 부를 수 있습니다. RFC는 원래 요청에 없고 분석 단계에서 덧붙인 항목이라 이번 개발에서 뺐습니다. 나중에 외부 호출이 필요해지면 그때 구조체를 하나 만들어야 하고, 이 경우도 설계서에 정리해 두었습니다."
+    },
+    {
+      "at": "2026-11-19T06:41:51.577Z",
+      "agent": "팀장",
+      "text": "✅ 설계 담당 결과를 승인했습니다."
+    },
+    {
+      "at": "2026-11-19T06:41:51.582Z",
+      "agent": "PL",
+      "text": "개발 담당 작업 차례입니다. Claude Code에서 진행합니다."
+    },
+    {
+      "at": "2026-11-19T06:41:51.595Z",
+      "agent": "개발 담당",
+      "text": "작업을 시작합니다."
+    },
+    {
+      "at": "2026-11-19T06:41:51.601Z",
+      "agent": "PL",
+      "text": "sap-developer 에이전트에게 작업을 지시했습니다."
+    },
+    {
+      "at": "2026-11-19T06:43:16.363Z",
+      "agent": "개발 담당",
+      "text": "🔎 SAP 조회: SearchObject ZFGMM7* FUGR false"
+    },
+    {
+      "at": "2026-11-19T06:43:17.027Z",
+      "agent": "개발 담당",
+      "text": "🔎 SAP 조회: SearchObject ZMMM* MSAG false"
+    },
+    {
+      "at": "2026-11-19T06:43:17.628Z",
+      "agent": "개발 담당",
+      "text": "🔎 SAP 조회: SearchObject Z_MM_GET_MATERIAL* false"
+    },
+    {
+      "at": "2026-11-19T06:43:17.968Z",
+      "agent": "개발 담당",
+      "text": "🔎 SAP 조회: GetClass ZCL_MM_MTART_MATLIST active"
+    },
+    {
+      "at": "2026-11-19T06:44:27.077Z",
+      "agent": "개발 담당",
+      "text": "✏️ src/ZCL_MM_MTART_MATLIST.abap 작성"
+    },
+    {
+      "at": "2026-11-19T06:44:38.869Z",
+      "agent": "개발 담당",
+      "text": "✏️ src/Z_MM_GET_MATERIAL_LIST.fm.abap 작성"
+    },
+    {
+      "at": "2026-11-19T06:44:40.022Z",
+      "agent": "개발 담당",
+      "text": "✏️ src/Z_MM_GET_MATERIAL_LIST.fm.json 작성"
+    },
+    {
+      "at": "2026-11-19T06:44:40.929Z",
+      "agent": "개발 담당",
+      "text": "✏️ src/ZFGMM71.fugr.json 작성"
+    },
+    {
+      "at": "2026-11-19T06:44:43.779Z",
+      "agent": "개발 담당",
+      "text": "✏️ src/ZMMM3.msag.json 작성"
+    },
+    {
+      "at": "2026-11-19T06:46:36.718Z",
+      "agent": "개발 담당",
+      "text": "✏️ 03_development.md 작성"
     }
   ],
   "createdAt": "2026-11-19T05:11:53.663Z",
-  "updatedAt": "2026-11-19T06:23:42.120Z"
+  "updatedAt": "2026-11-19T06:46:36.718Z"
 }

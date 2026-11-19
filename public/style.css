@@ -364,3 +364,13 @@ a.seat:hover { outline: 2px solid var(--accent); outline-offset: 1px; }
 .legend i { width: 22px; height: 12px; border-radius: 3px; border: 1.5px solid var(--line); display: inline-block; }
 @media (max-width: 1000px) { .floor { grid-template-columns: repeat(2, minmax(0, 1fr)); } .room { border-right: 1px dashed var(--line) !important; border-bottom: 1px dashed var(--line) !important; } }
 @media (max-width: 640px) { .floor { grid-template-columns: 1fr; } }
+
+/* 설계 단계 안내 박스 */
+.notice { display: flex; gap: 12px; align-items: flex-start; margin: 0 0 14px; padding: 12px 14px; border-radius: 10px;
+  border: 2px solid var(--warn); border-left-width: 6px; background: var(--warn-bg2); font-size: 13px; }
+.notice-ico { font-size: 24px; line-height: 1; }
+.notice-t { font-weight: 800; font-size: 14px; color: var(--warn); margin-bottom: 3px; }
+.notice b { color: var(--text); }
+.notice ul { margin: 6px 0 4px; padding-left: 18px; }
+.sysrel { font-variant-numeric: tabular-nums; }
+.sysrel.old { color: var(--warn); font-weight: 600; }

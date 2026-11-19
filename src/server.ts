@@ -33,6 +33,26 @@ const wrap = (fn: (req: Request, res: Response) => unknown) => async (req: Reque
   }
 };
 
+// 시스템별 SAP_BASIS 버전 (CVERS 조회 결과를 12시간 캐시). 실패는 5분만 캐시해 곧 다시 시도한다
+const releaseCache = new Map<string, { at: number; ttl: number; value: { release: string; sp: number; label: string } | null; error?: string }>();
+app.get("/api/systems/:name/release", wrap(async (req, res) => {
+  const name = resolveSystem(String(req.params.name));
+  if (!name) return res.json({ name: null, value: null, error: "등록된 SAP 시스템이 없습니다." });
+  const hit = releaseCache.get(name);
+  if (hit && Date.now() - hit.at < hit.ttl) return res.json({ name, value: hit.value, error: hit.error ?? null });
+  const cfg = sapConfig(name);
+  if (!cfg) return res.json({ name, value: null, error: "접속 정보가 없습니다." });
+  try {
+    const r = await new AdtClient(cfg).basisRelease();
+    const value = r ? { ...r, label: `${r.release} SP${String(r.sp).padStart(2, "0")}` } : null;
+    releaseCache.set(name, { at: Date.now(), ttl: 12 * 3600_000, value, error: value ? undefined : "CVERS에 SAP_BASIS가 없습니다." });
+    res.json({ name, value, error: value ? null : "CVERS에 SAP_BASIS가 없습니다." });
+  } catch (e) {
+    releaseCache.set(name, { at: Date.now(), ttl: 5 * 60_000, value: null, error: (e as Error).message });
+    res.json({ name, value: null, error: (e as Error).message });
+  }
+}));
+
 app.get("/api/status", (_req, res) => {
   const sap = sapConfig();
   res.json({ team: TEAM, sap: sap ? { url: sap.url, client: sap.client, user: sap.user } : null, systems: listSystems(), system: currentSystem(), auth: authEnabled() });
