@@ -1,8 +1,8 @@
 {
   "id": "20261119-f26e72",
   "title": "자재 리스트 조회 펀션 신규 개발",
-  "status": "in_progress",
-  "currentStage": "test",
+  "status": "done",
+  "currentStage": "deploy",
   "stages": {
     "analysis": {
       "status": "approved",
@@ -125,27 +125,27 @@
       "endedAt": "2026-11-19T07:19:46.741Z"
     },
     "test": {
-      "status": "running",
+      "status": "approved",
       "review": {
         "decision": "approve",
         "send_back_to": "test",
         "feedback": "",
-        "summary": "테스트 담당이 바뀐 설계·개발 내용에 맞춰 테스트 문서(04_test.md)와 자동 테스트 코드(ABAP Unit 18건)를 다시 만들었습니다. 이전 테스트 코드는 설계 변경으로 없어진 구조체(ZSMM3600/ZTTMM3600)를 계속 쓰고 있어서 그대로 반영했다면 개발계 활성화가 실패했을 것입니다. 이번에 클래스 안에 정의한 결과 형식으로 바꿔 이 문제를 해결했고, 결과 형식(자재코드·자재내역·기본단위)이 바뀌지 않았는지 확인하는 테스트도 1건 새로 넣었습니다. 개발 소스에서 고쳐야 할 결함은 없습니다. 판정은 '조건부 합격'으로, 개발계 반영 때 활성화와 ABAP Unit이 성공하고 SE37 화면에서 결과가 보이는지 확인해야 합니다. 시스템에 예전 클래스의 비활성 버전이 남아 있으니 반영 결과에서 클래스 본문과 테스트 코드가 모두 '갱신'으로 나오는지 함께 확인해 주세요."
+        "summary": "팀장님의 개발 수정 지시(ZMMM3 대신 기존 메시지 클래스 ZMM 사용)에 맞춰 테스트 문서(04_test.md)와 자동 테스트 코드를 고쳤습니다. 테스트 코드에 남아 있던 옛 메시지 클래스·번호 표기를 모두 ZMM 338~343번으로 바꿨습니다. 메시지가 실제로 ZMM 338~343번으로 나오는지 확인하는 테스트 1건을 새로 넣어 자동 테스트는 19건이 됐고, 프로그램 로직은 바뀌지 않았습니다. 판정은 '조건부 합격'입니다. 개발계에 반영할 때 확인할 것은 세 가지입니다. ① 반영 기록의 메시지 클래스 줄에 경고 없이 'ZMM 338~343 추가'가 찍히는지 봐 주세요. 지난번 ZMMM3도 같은 자동 등록이 오류로 실패했으므로, 이번에도 실패하면 SE91에서 직접 등록해야 합니다. ② 자동 테스트 19건이 모두 통과하는지 확인해 주세요. ③ 이송요청에 ZMM 메시지 클래스 전체가 묶여 들어가지 않았는지 확인해 주세요. 설계서(02_design.md)에는 아직 예전 메시지 번호가 남아 있습니다. 동작에는 영향이 없지만 문서만 나중에 정리하면 됩니다."
       },
       "attempts": 3,
       "directive": null,
       "directives": [],
       "startedAt": "2026-11-19T07:19:46.755Z",
-      "endedAt": null
+      "endedAt": "2026-11-19T07:39:45.983Z"
     },
     "deploy": {
-      "status": "pending",
+      "status": "approved",
       "review": null,
-      "attempts": 3,
+      "attempts": 4,
       "directive": null,
       "directives": [],
-      "startedAt": null,
-      "endedAt": null
+      "startedAt": "2026-11-19T07:40:01.855Z",
+      "endedAt": "2026-11-19T07:40:07.189Z"
     }
   },
   "revisionCount": 2,
@@ -153,7 +153,11 @@
     "package": "ZMMD",
     "transport": "MRDK913275"
   },
-  "deployResult": null,
+  "deployResult": {
+    "mode": "실제 반영 (mrd-abap-rw · https://vhdkcmrdci.sap.dongkukcm.com:44300, 클라이언트 350)",
+    "ok": true,
+    "text": "반영 모드: 실제 반영 (mrd-abap-rw · https://vhdkcmrdci.sap.dongkukcm.com:44300, 클라이언트 350)\n패키지 ZMMD, 이송요청 MRDK913275\n\n⚠️ MSAG ZMM 반영 실패 — SE91에서 직접 만들어 주세요: 메시지 클래스 ZMM 저장 실패 (HTTP 500): 메시지 번호 102에 대한 메시지 내역이 없습니다.\nFUGR ZFGMM71 이미 있음\nCLAS ZCL_MM_MTART_MATLIST 소스 갱신 완료 (테스트 클래스 포함)\nFUNC Z_MM_GET_MATERIAL_LIST (그룹 ZFGMM71) 소스 갱신 완료\n활성화 성공\nZCL_MM_MTART_MATLIST ABAP Unit: 테스트 메서드 19개 실행 (UT01_MTART_LOWER_LEAD_SPACE, UT02_MTART_INITIAL, UT03_SPRAS_DEFAULT_AND_GIVEN, UT04_MAX_ROWS_NORMALIZE, UT05_LVORM_RANGE_EXCLUDE, UT06_LVORM_RANGE_WITH_DEL, UT07_UP_TO_ROWS, UT08_LIST_MAKT_MISSING, UT09_LIST_SORTED, UT10_LIST_TRUNCATED, UT11_LIST_EXACT_N_NOT_TRUNC, UT12_LIST_MAX_ZERO_ALL, UT13_MAKE_RETURN_FIELDS, UT14_EXECUTE_GUARD_NO_INPUT, UT15_DECIDE_RETURN_S_AND_W, UT16_CONSTRUCTOR_NORMALIZE, UT17_LIST_EMPTY_INPUT, UT18_LIST_TYPE_CONTRACT, UT19_MSG_CONTRACT_ZMM)\n모든 테스트 통과"
+  },
   "system": "mrd-abap-rw",
   "logs": [
     {
@@ -1570,27 +1574,97 @@
       "at": "2026-11-19T07:26:21.907Z",
       "agent": "테스트 담당",
       "text": "✏️ 04_test.md 작성"
+    },
+    {
+      "at": "2026-11-19T07:27:08.890Z",
+      "agent": "PL",
+      "text": "📨 팀장님께 테스트 담당 결과를 보고드립니다 (권고: 승인) — 팀장님의 개발 수정 지시(ZMMM3 대신 기존 메시지 클래스 ZMM 사용)에 맞춰 테스트 문서(04_test.md)와 자동 테스트 코드를 고쳤습니다. 테스트 코드에 남아 있던 옛 메시지 클래스·번호 표기를 모두 ZMM 338~343번으로 바꿨습니다. 메시지가 실제로 ZMM 338~343번으로 나오는지 확인하는 테스트 1건을 새로 넣어 자동 테스트는 19건이 됐고, 프로그램 로직은 바뀌지 않았습니다. 판정은 '조건부 합격'입니다. 개발계에 반영할 때 확인할 것은 세 가지입니다. ① 반영 기록의 메시지 클래스 줄에 경고 없이 'ZMM 338~343 추가'가 찍히는지 봐 주세요. 지난번 ZMMM3도 같은 자동 등록이 오류로 실패했으므로, 이번에도 실패하면 SE91에서 직접 등록해야 합니다. ② 자동 테스트 19건이 모두 통과하는지 확인해 주세요. ③ 이송요청에 ZMM 메시지 클래스 전체가 묶여 들어가지 않았는지 확인해 주세요. 설계서(02_design.md)에는 아직 예전 메시지 번호가 남아 있습니다. 동작에는 영향이 없지만 문서만 나중에 정리하면 됩니다."
+    },
+    {
+      "at": "2026-11-19T07:39:45.983Z",
+      "agent": "팀장",
+      "text": "✅ 테스트 담당 결과를 승인했습니다."
+    },
+    {
+      "at": "2026-11-19T07:39:45.989Z",
+      "agent": "PL",
+      "text": "분석~테스트가 모두 승인되었습니다. 개발계 반영을 승인해 주세요."
+    },
+    {
+      "at": "2026-11-19T07:39:46.003Z",
+      "agent": "PL",
+      "text": "📚 이번 요청에서 배운 점을 지식 위키에 정리합니다."
+    },
+    {
+      "at": "2026-11-19T07:40:01.855Z",
+      "agent": "팀장",
+      "text": "개발계 반영을 승인했습니다."
+    },
+    {
+      "at": "2026-11-19T07:40:03.890Z",
+      "agent": "적용",
+      "text": "⚠️ MSAG ZMM 반영 실패 — SE91에서 직접 만들어 주세요: 메시지 클래스 ZMM 저장 실패 (HTTP 500): 메시지 번호 102에 대한 메시지 내역이 없습니다."
+    },
+    {
+      "at": "2026-11-19T07:40:04.055Z",
+      "agent": "적용",
+      "text": "FUGR ZFGMM71 이미 있음"
+    },
+    {
+      "at": "2026-11-19T07:40:04.884Z",
+      "agent": "적용",
+      "text": "CLAS ZCL_MM_MTART_MATLIST 소스 갱신 완료 (테스트 클래스 포함)"
+    },
+    {
+      "at": "2026-11-19T07:40:05.256Z",
+      "agent": "적용",
+      "text": "FUNC Z_MM_GET_MATERIAL_LIST (그룹 ZFGMM71) 소스 갱신 완료"
+    },
+    {
+      "at": "2026-11-19T07:40:06.840Z",
+      "agent": "적용",
+      "text": "활성화 성공"
+    },
+    {
+      "at": "2026-11-19T07:40:07.145Z",
+      "agent": "적용",
+      "text": "ZCL_MM_MTART_MATLIST ABAP Unit: 테스트 메서드 19개 실행 (UT01_MTART_LOWER_LEAD_SPACE, UT02_MTART_INITIAL, UT03_SPRAS_DEFAULT_AND_GIVEN, UT04_MAX_ROWS_NORMALIZE, UT05_LVORM_RANGE_EXCLUDE, UT06_LVORM_RANGE_WITH_DEL, UT07_UP_TO_ROWS, UT08_LIST_MAKT_MISSING, UT09_LIST_SORTED, UT10_LIST_TRUNCATED, UT11_LIST_EXACT_N_NOT_TRUNC, UT12_LIST_MAX_ZERO_ALL, UT13_MAKE_RETURN_FIELDS, UT14_EXECUTE_GUARD_NO_INPUT, UT15_DECIDE_RETURN_S_AND_W, UT16_CONSTRUCTOR_NORMALIZE, UT17_LIST_EMPTY_INPUT, UT18_LIST_TYPE_CONTRACT, UT19_MSG_CONTRACT_ZMM)\n모든 테스트 통과"
+    },
+    {
+      "at": "2026-11-19T07:40:07.189Z",
+      "agent": "적용",
+      "text": "📋 개발계 반영을 마쳤습니다."
+    },
+    {
+      "at": "2026-11-19T07:41:31.033Z",
+      "agent": "PL",
+      "text": "📚 지식 위키 정리 완료 — 새 문서 '메시지 클래스 선택과 번호 배정 기준', 보강 'RFC 조회 함수 모듈 설계 패턴', 보강 '신규 DDIC 없이 개발하는 방법', 보강 '테스트계 반영 전 점검 항목'"
     }
   ],
   "createdAt": "2026-11-19T05:11:53.663Z",
-  "updatedAt": "2026-11-19T07:26:21.907Z",
+  "updatedAt": "2026-11-19T07:41:31.033Z",
   "lessons": {
-    "at": "2026-11-19T07:13:01.142Z",
+    "at": "2026-11-19T07:41:31.033Z",
     "docs": [
+      {
+        "title": "메시지 클래스 선택과 번호 배정 기준",
+        "action": "created",
+        "summary": "팀장 지시로 신규 ZMMM3 대신 기존 공용 ZMM의 빈 번호 338~343을 쓰게 된 경위를 정리. 번호 배정 방법(GetMessageClass 조회 후 마지막 번호 뒤 연속 구간), 공용 클래스의 위험(사용처 조회 누락, 번호 충돌 시 경고만 남음, 전체 PUT에 따른 잠금·이송 범위), 고정 기대값으로 메시지 계약을 확인하는 테스트, .unused로 바꿔 반영에서 빼는 방법, 흐름도 포함"
+      },
       {
         "title": "RFC 조회 함수 모듈 설계 패턴",
         "action": "updated",
-        "summary": "ZMMM3 자동 생성 실패 뒤 메시지 문구만 비정상인 상태라 SE91 등록 전에는 호출측에 넘기지 않는다는 반영 결과를 메시지 처리 절에 보강"
+        "summary": "메시지 처리 절에 신규 ZMMM3 판단을 철회하고 ZMM 338~343으로 확정한 최종안 추가"
       },
       {
         "title": "신규 DDIC 없이 개발하는 방법",
         "action": "updated",
-        "summary": "클래스 TYPES를 참조하는 일반 FM이 개발계에서 생성·활성화 성공한 것으로 시스템 미확인 항목을 확인 처리, DDIC를 없애도 메시지 클래스 SE91 수작업이 남을 수 있다는 점 추가, 다이어그램 수정"
+        "summary": "신규 DDIC 0건에 더해 신규 MSAG 0건(기존 공용 클래스에 번호 추가)을 기본안으로 둔다는 경향 추가, 흐름도의 MSAG 노드 수정"
       },
       {
         "title": "테스트계 반영 전 점검 항목",
         "action": "updated",
-        "summary": "3차 반영 결과(같은 이송요청으로 재반영, 비활성 클래스 소스 갱신 정상, 활성화·ABAP Unit 18건 통과)와 MSAG ZMMM3 자동 생성 HTTP 400 실패(도구 문제, 경고만 남고 결과 ok로 보이는 점, 동적 MESSAGE라 활성화는 통과, SE91 수작업 조치)를 추가하고 다이어그램에 반영 결과 경고 확인 단계 반영"
+        "summary": "기존 공용 메시지 클래스에 번호를 추가할 때 반영 전후 확인할 4가지와, 안 쓰는 msag.json을 반영 대상에서 빼는 방법 추가"
       }
     ]
   }
