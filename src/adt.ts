@@ -19,6 +19,10 @@ export function sapConfigFromEnv(): SapConfig | null {
 const xmlEscape = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
+/** encoding="ASCII" 로 선언한 본문에 한글 등을 넣을 때: ASCII 밖 문자는 &#코드; 문자 참조로 바꾼다
+ *  (그대로 넣으면 SAP가 "Error during deserialization" 으로 거부한다) */
+const asciiXml = (s: string) => xmlEscape(s).replace(/[^\x00-\x7f]/gu, (c) => `&#${c.codePointAt(0)};`);
+
 const decodeXml = (s: string) =>
   s.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, "&");
 
@@ -136,7 +140,7 @@ export class AdtClient {
   /** 패키지에 맞는 워크벤치 이송요청을 새로 만들고 번호를 돌려준다 (ADT "New Transport Request"와 같은 호출) */
   async createTransport(pkg: string, text: string, refUri: string): Promise<string> {
     const body = `<?xml version="1.0" encoding="ASCII"?><asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0"><asx:values><DATA>
-<OPERATION>I</OPERATION><DEVCLASS>${xmlEscape(pkg.toUpperCase())}</DEVCLASS><REQUEST_TEXT>${xmlEscape(text.slice(0, 60))}</REQUEST_TEXT><REF>${xmlEscape(refUri)}</REF>
+<OPERATION>I</OPERATION><DEVCLASS>${xmlEscape(pkg.toUpperCase())}</DEVCLASS><REQUEST_TEXT>${asciiXml(text.slice(0, 60))}</REQUEST_TEXT><REF>${asciiXml(refUri)}</REF>
 </DATA></asx:values></asx:abap>`;
     const res = await this.req("POST", "/sap/bc/adt/cts/transports", {
       body,

@@ -1,8 +1,8 @@
 {
   "id": "20261119-f26e72",
   "title": "자재 리스트 조회 펀션 신규 개발",
-  "status": "awaiting_review",
-  "currentStage": "test",
+  "status": "failed",
+  "currentStage": "deploy",
   "stages": {
     "analysis": {
       "status": "approved",
@@ -115,7 +115,7 @@
       "endedAt": "2026-11-19T06:04:32.471Z"
     },
     "test": {
-      "status": "review",
+      "status": "approved",
       "review": {
         "decision": "approve",
         "send_back_to": "test",
@@ -126,21 +126,28 @@
       "directive": null,
       "directives": [],
       "startedAt": "2026-11-19T06:04:32.488Z",
-      "endedAt": null
+      "endedAt": "2026-11-19T06:23:08.729Z"
     },
     "deploy": {
-      "status": "pending",
+      "status": "failed",
       "review": null,
-      "attempts": 0,
+      "attempts": 1,
       "directive": null,
       "directives": [],
-      "startedAt": null,
+      "startedAt": "2026-11-19T06:23:41.413Z",
       "endedAt": null
     }
   },
   "revisionCount": 0,
-  "deployConfig": null,
-  "deployResult": null,
+  "deployConfig": {
+    "package": "ZMMD",
+    "transport": ""
+  },
+  "deployResult": {
+    "mode": "",
+    "ok": false,
+    "text": "이송요청 생성 실패 (HTTP 400): Error during deserialization"
+  },
   "system": "mrd-abap-rw",
   "logs": [
     {
@@ -967,8 +974,33 @@
       "at": "2026-11-19T06:13:29.758Z",
       "agent": "PL",
       "text": "📨 팀장님께 테스트 담당 결과를 보고드립니다 (권고: 승인) — 테스트 담당이 테스트 결과서(04_test.md)와 자동 단위 테스트 소스(src/ZCL_MM_MTART_MATLIST.testclasses.abap)를 만들었습니다. 판정은 '조건부 합격'으로, 코드를 고쳐야 할 결함은 없습니다. 자동 테스트 17개는 입력값 정리, 정렬, 최대 건수 자르기, 결과 메시지를 확인하고, DB를 읽는 부분은 SE37에서 사람이 돌릴 통합 테스트 17개로 정리했습니다. 분석서의 합격 기준 14개도 모두 테스트와 연결했습니다. 제가 소스를 직접 읽어 보니 이 시스템 버전에서 막힌 문법은 쓰지 않았고 개발 단계의 전달 사항도 모두 반영됐습니다. 다만 SAP에서 실제로 돌려 본 것이 아니라 소스를 읽고 판단한 결과입니다. 결과 구조(ZSMM3600/ZTTMM3600)와 메시지(ZMMM3)는 이번 조회에서도 시스템에 아직 없었습니다. 그래서 개발계 반영 버튼을 누르기 전에 SE11/SE91에서 이것들을 먼저 만들어야 하고, 권한 객체 M_MATE_MAR의 필드 구성은 SU21에서 확인해야 합니다."
+    },
+    {
+      "at": "2026-11-19T06:23:08.729Z",
+      "agent": "팀장",
+      "text": "✅ 테스트 담당 결과를 승인했습니다."
+    },
+    {
+      "at": "2026-11-19T06:23:08.735Z",
+      "agent": "PL",
+      "text": "분석~테스트가 모두 승인되었습니다. 개발계 반영을 승인해 주세요."
+    },
+    {
+      "at": "2026-11-19T06:23:08.747Z",
+      "agent": "PL",
+      "text": "📚 이번 요청에서 배운 점을 지식 위키에 정리합니다."
+    },
+    {
+      "at": "2026-11-19T06:23:41.413Z",
+      "agent": "팀장",
+      "text": "개발계 반영을 승인했습니다."
+    },
+    {
+      "at": "2026-11-19T06:23:42.120Z",
+      "agent": "적용",
+      "text": "반영 중 오류: 이송요청 생성 실패 (HTTP 400): Error during deserialization"
     }
   ],
   "createdAt": "2026-11-19T05:11:53.663Z",
-  "updatedAt": "2026-11-19T06:13:29.758Z"
+  "updatedAt": "2026-11-19T06:23:42.120Z"
 }
