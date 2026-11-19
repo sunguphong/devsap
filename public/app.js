@@ -13,6 +13,7 @@ let selectedId = null;
 let selectedStage = null;
 let lastUpdated = null;
 let pollTimer = null;
+let pendingDeck = null; // 요약을 요청한 보고용 PPT (`${id}:${단계}`) — 다 되면 바로 내려받는다
 
 async function api(path, opts = {}) {
   const res = await fetch(path, { headers: { "Content-Type": "application/json" }, ...opts, body: opts.body && JSON.stringify(opts.body) });
@@ -402,13 +403,22 @@ function renderTicket(t) {
     ? (t.deployResult ? `<pre>${esc(t.deployResult.text)}</pre>` : `<span class="sub">아직 반영하지 않았습니다.</span>`)
     : renderFiles(t.files[selectedStage]) || `<span class="sub">${st.status === "running" ? "작업 중입니다..." : "아직 산출물이 없습니다."}</span>`;
 
+  // 보고용 PPT: 산출물을 AI가 슬라이드 개요로 요약한 뒤 만든다 (산출물이 바뀌면 다시 요약)
+  const dk = selectedStage !== "deploy" && t.files[selectedStage]?.length ? t.decks?.[selectedStage] : null;
+  const dkTitle = !dk ? "" : dk.status === "ready" ? `요약 ${new Date(dk.at).toLocaleString()} · 핵심만 담은 보고 자료 (상세는 발표자 노트)`
+    : dk.status === "failed" ? `요약 실패 — ${dk.error}` : dk.status === "stale" ? "산출물이 바뀌어 다시 요약합니다 (1~3분)" : "AI가 산출물을 보고용으로 요약합니다 (1~3분)";
+  const deckBtn = !dk ? ""
+    : dk.status === "building" ? `<button class="small" disabled>📊 요약 중…</button>`
+    : `<button id="deckPptx" class="small" data-mode="${dk.status === "ready" ? "download" : "build"}" title="${esc(dkTitle)}">📊 보고용 PPT${dk.status === "failed" ? " (다시 시도)" : ""}</button>`
+      + (dk.status === "ready" ? `<button id="deckRebuild" class="small" title="보고용 요약을 다시 만듭니다">↻</button>` : "");
+
   $("#detail").innerHTML = `
     <h2>${esc(t.title)} <span class="badge ${t.status}">${STATUS[t.status] ?? t.status}</span></h2>
     <div class="sub">${t.id}${t.system ? ` · 🖥 ${esc(t.system)}` : ""} · 등록 ${new Date(t.createdAt).toLocaleString()} · 팀장 수정 지시 ${t.revisionCount}회 · 폴더 work/${t.id}/</div>
     <div class="team">${members}</div>
     ${gate}${crCard}${deploy}
     <div class="grid2">
-      <div class="card"><h3 class="row" style="justify-content:space-between">${team[selectedStage].name} 산출물<span class="row" style="gap:6px">${canVerify ? verifyBtn(selectedStage, "verifyStage").replace("<button ", '<button class="small" ') : ""}${selectedStage === "test" ? '<button id="testResult" class="small">⬇️ 테스트결과서</button>' : ""}<button id="stagePptx" class="small">⬇️ PPTX</button></span></h3>${review}${stageVerify}${directives}<div class="out">${output}</div></div>
+      <div class="card"><h3 class="row" style="justify-content:space-between">${team[selectedStage].name} 산출물<span class="row" style="gap:6px">${canVerify ? verifyBtn(selectedStage, "verifyStage").replace("<button ", '<button class="small" ') : ""}${selectedStage === "test" ? '<button id="testResult" class="small">⬇️ 테스트결과서</button>' : ""}${deckBtn}<button id="stagePptx" class="small" title="산출물 원문을 그대로 옮긴 상세 자료">⬇️ 원문 PPTX</button></span></h3>${review}${stageVerify}${directives}<div class="out">${output}</div></div>
       <div>
         <div class="card"><h3>📚 배운 점 <span class="sub">지식 위키</span></h3>
           ${t.lessons?.docs.length
@@ -428,8 +438,26 @@ function renderTicket(t) {
     btn.disabled = true;
     btn.textContent = "만드는 중…";
     try { await downloadStagePptx(t, selectedStage); } catch (err) { alert(err.message ?? err); }
-    finally { btn.disabled = false; btn.textContent = "⬇️ PPTX"; }
+    finally { btn.disabled = false; btn.textContent = "⬇️ 원문 PPTX"; }
   });
+  const deckDownload = async (stage, btn) => {
+    if (btn) { btn.disabled = true; btn.textContent = "만드는 중…"; }
+    try { await downloadReportPptx(t, stage, await api(`/api/tickets/${t.id}/deck/${stage}`)); } catch (err) { alert(err.message ?? err); }
+    finally { if (btn) { btn.disabled = false; btn.textContent = "📊 보고용 PPT"; } }
+  };
+  const deckBuild = async (btn) => {
+    btn.disabled = true;
+    try { await api(`/api/tickets/${t.id}/deck`, { method: "POST", body: { stage: selectedStage } }); pendingDeck = `${t.id}:${selectedStage}`; lastUpdated = null; await refresh(); }
+    catch (err) { alert(err.message); btn.disabled = false; }
+  };
+  $("#deckPptx")?.addEventListener("click", (e) => (e.currentTarget.dataset.mode === "download" ? deckDownload(selectedStage, e.currentTarget) : deckBuild(e.currentTarget)));
+  $("#deckRebuild")?.addEventListener("click", (e) => deckBuild(e.currentTarget));
+  if (pendingDeck?.startsWith(`${t.id}:`)) {
+    const stage = pendingDeck.split(":")[1];
+    const d = t.decks?.[stage];
+    if (d?.status === "ready") { pendingDeck = null; deckDownload(stage, stage === selectedStage ? $("#deckPptx") : null); }
+    else if (d?.status !== "building") pendingDeck = null;
+  }
   $("#testResult")?.addEventListener("click", async (e) => {
     const btn = e.currentTarget;
     btn.disabled = true;
@@ -637,4 +665,14 @@ $("#newDlg").addEventListener("close", async () => {
   await loadList();
   const first = $("#tickets li[data-id]");
   if (first) select(first.dataset.id);
+})();
+
+// ---------- 화면 테마 (브라우저별로 기억) ----------
+(() => {
+  const pick = $("#themePick");
+  pick.value = document.documentElement.dataset.theme || "light";
+  pick.addEventListener("change", () => {
+    document.documentElement.dataset.theme = pick.value;
+    try { localStorage.setItem("devsap-theme", pick.value); } catch {}
+  });
 })();

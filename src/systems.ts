@@ -36,13 +36,42 @@ function readJson(file: string): any {
   }
 }
 
-/** SAP 접속 정보(SAP_URL)가 있는 MCP 서버. 같은 이름이면 프로젝트 범위가 이긴다 */
+/** args 의 --env-path=<파일> (mcp-abap-adt) 에 든 KEY=VALUE 를 읽는다 */
+function envFileOf(s: McpServer): Record<string, string> {
+  const arg = s.args?.find((a) => a.startsWith("--env-path="));
+  if (!arg) return {};
+  try {
+    const out: Record<string, string> = {};
+    for (const line of fs.readFileSync(arg.slice("--env-path=".length).replace(/^"|"$/g, ""), "utf8").split(/\r?\n/)) {
+      const m = line.match(/^\s*([A-Za-z_][\w]*)\s*=\s*(.*?)\s*$/);
+      if (m) out[m[1]] = m[2].replace(/^(["'])(.*)\1$/, "$2");
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+/** SAP 접속 정보(SAP_URL)가 있는 MCP 서버. 같은 이름이면 프로젝트 범위가 이긴다.
+ *  --env-path 파일로 접속 정보를 주는 서버는 그 파일 값을 env 에 합쳐 본다 (헤드리스 세션에 넘기는 설정은 원본 그대로). */
 function mcpServers(): Map<string, McpServer> {
   const user = readJson(path.join(os.homedir(), ".claude.json"));
   const cwd = process.cwd().replaceAll("\\", "/");
   const project = Object.entries(user?.projects ?? {}).find(([p]) => p.replaceAll("\\", "/").toLowerCase() === cwd.toLowerCase())?.[1] as any;
   const all = { ...user?.mcpServers, ...project?.mcpServers, ...readJson(".mcp.json")?.mcpServers } as Record<string, McpServer>;
-  return new Map(Object.entries(all).filter(([, s]) => s?.env?.SAP_URL));
+  return new Map(
+    Object.entries(all)
+      .map(([name, s]) => [name, s && { ...s, env: { ...envFileOf(s), ...s.env } }] as [string, McpServer])
+      .filter(([, s]) => s?.env?.SAP_URL),
+  );
+}
+
+/** 헤드리스 세션에 넘길 원본 서버 설정 (env-path 값을 합치지 않은 것) */
+function rawServer(name: string): McpServer | undefined {
+  const user = readJson(path.join(os.homedir(), ".claude.json"));
+  const cwd = process.cwd().replaceAll("\\", "/");
+  const project = Object.entries(user?.projects ?? {}).find(([p]) => p.replaceAll("\\", "/").toLowerCase() === cwd.toLowerCase())?.[1] as any;
+  return { ...user?.mcpServers, ...project?.mcpServers, ...readJson(".mcp.json")?.mcpServers }[name];
 }
 
 export function listSystems(): SapSystem[] {
@@ -88,6 +117,6 @@ export function writeMcpConfig(system?: string | null): { file: string; system: 
   const name = resolveSystem(system);
   if (!name) return null;
   const file = path.join(os.tmpdir(), `devsap-mcp-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}.json`);
-  fs.writeFileSync(file, JSON.stringify({ mcpServers: { [MCP_ALIAS]: mcpServers().get(name) } }), { mode: 0o600 });
+  fs.writeFileSync(file, JSON.stringify({ mcpServers: { [MCP_ALIAS]: rawServer(name) } }), { mode: 0o600 });
   return { file, system: listSystems().find((s) => s.name === name)!, cleanup: () => fs.rmSync(file, { force: true }) };
 }

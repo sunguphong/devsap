@@ -218,3 +218,196 @@ async function downloadStagePptx(t, stage) {
   }
   await pptx.writeFile({ fileName: `${t.id}(${t.title})_${stageName}_${new Date().toISOString().slice(0, 10)}.pptx`.replace(/[\\/:*?"<>|]/g, "_") });
 }
+
+// ---------- 보고용 PPT ----------
+// 서버(src/deck.ts)가 산출물을 요약한 슬라이드 개요로 만든다: 표지 → 한눈에 보기 → 본문(한 장 한 메시지) → 확인 필요·다음 단계.
+// 화면에는 요점만 두고 상세 근거는 발표자 노트로 보낸다.
+
+const RP = { X: 0.6, CW: 12.13, TOP: 2.1, H: 4.7, INK: "1D2330", BODY: "334155", SOFT: "E8EFFD", BG: "F4F6FA", LINE: "D9E0EA", WARN: "B45309", WARN_BG: "FFF6E8" };
+const rpClip = (s, n) => { const c = [...String(s ?? "").trim()]; return c.length > n ? c.slice(0, n - 1).join("") + "…" : c.join(""); };
+
+class ReportDeck {
+  constructor(pptx, docTitle) { this.pptx = pptx; this.docTitle = docTitle; this.page = 1; }
+  t(s, text, o) { s.addText(text, { fontFace: SP.FONT, color: RP.INK, margin: 0, valign: "top", ...o }); }
+  rect(s, o) { s.addShape(this.pptx.ShapeType.rect, { line: { type: "none" }, ...o }); }
+
+  // 공통 틀: 제목 + 핵심 메시지 + 구분선, 아래 본문 영역 (y 2.1 ~ 6.8)
+  frame(title, message, notes) {
+    const s = this.pptx.addSlide();
+    this.rect(s, { x: RP.X, y: 0.5, w: 0.09, h: 0.58, fill: { color: SP.ACCENT } });
+    this.t(s, rpClip(title, 30), { x: RP.X + 0.25, y: 0.42, w: RP.CW - 0.25, h: 0.72, fontSize: 26, bold: true, color: SP.NAVY, valign: "middle", fit: "shrink" });
+    if (message) this.t(s, rpClip(message, 80), { x: RP.X + 0.25, y: 1.15, w: RP.CW - 0.25, h: 0.5, fontSize: 16, color: RP.BODY, valign: "middle", fit: "shrink" });
+    s.addShape(this.pptx.ShapeType.line, { x: RP.X, y: 1.82, w: RP.CW, h: 0, line: { color: RP.LINE, width: 1 } });
+    this.t(s, this.docTitle, { x: RP.X, y: 7.0, w: 9, h: 0.3, fontSize: 9, color: SP.MUTED });
+    this.t(s, String(++this.page), { x: 11.73, y: 7.0, w: 1.0, h: 0.3, fontSize: 9, color: SP.MUTED, align: "right" });
+    if (notes) s.addNotes(notes);
+    return s;
+  }
+
+  // 요점 카드: 3개 이하는 세로형 카드를 가로로, 4개 이상(또는 좁은 영역)은 번호 붙은 가로형 카드
+  points(s, pts, x = RP.X, w = RP.CW) {
+    pts = pts.slice(0, 6);
+    const n = pts.length;
+    if (!n) return;
+    if (n <= 3 && w > 8) {
+      const gap = 0.3, cw = (w - gap * (n - 1)) / n, h = 3.6, y = RP.TOP + 0.3;
+      pts.forEach((p, i) => {
+        const cx = x + i * (cw + gap);
+        this.rect(s, { x: cx, y, w: cw, h, fill: { color: RP.BG } });
+        this.rect(s, { x: cx, y, w: cw, h: 0.08, fill: { color: SP.ACCENT } });
+        this.t(s, String(i + 1).padStart(2, "0"), { x: cx + 0.35, y: y + 0.35, w: 1, h: 0.4, fontSize: 14, bold: true, color: SP.ACCENT });
+        this.t(s, rpClip(p.head, 24), { x: cx + 0.35, y: y + 0.85, w: cw - 0.7, h: 0.9, fontSize: n === 1 ? 24 : 20, bold: true, color: SP.NAVY, fit: "shrink" });
+        this.t(s, rpClip(p.text, 90), { x: cx + 0.35, y: y + 1.85, w: cw - 0.7, h: h - 2.1, fontSize: 15, color: RP.BODY, lineSpacingMultiple: 1.2, fit: "shrink" });
+      });
+      return;
+    }
+    const cols = w > 8 && n >= 4 ? 2 : 1, rows = Math.ceil(n / cols), gap = 0.22;
+    const cw = (w - gap * (cols - 1)) / cols, ch = Math.min(1.6, (RP.H - gap * (rows - 1)) / rows);
+    const small = ch < 1.3 || w < 5;
+    pts.forEach((p, i) => {
+      const cx = x + (i % cols) * (cw + gap), cy = RP.TOP + Math.floor(i / cols) * (ch + gap);
+      this.rect(s, { x: cx, y: cy, w: cw, h: ch, fill: { color: RP.BG } });
+      s.addShape(this.pptx.ShapeType.ellipse, { x: cx + 0.2, y: cy + (ch - 0.46) / 2, w: 0.46, h: 0.46, fill: { color: RP.SOFT }, line: { type: "none" } });
+      this.t(s, String(i + 1), { x: cx + 0.2, y: cy + (ch - 0.46) / 2, w: 0.46, h: 0.46, fontSize: 13, bold: true, color: SP.ACCENT, align: "center", valign: "middle" });
+      this.t(s, [
+        { text: rpClip(p.head, 24), options: { fontSize: small ? 14 : 17, bold: true, color: SP.NAVY, breakLine: true } },
+        { text: rpClip(p.text, 90), options: { fontSize: small ? 12 : 14, color: RP.BODY } },
+      ], { x: cx + 0.85, y: cy + 0.1, w: cw - 1.0, h: ch - 0.2, valign: "middle", paraSpaceAfter: 4, fit: "shrink" });
+    });
+  }
+
+  // 처리 단계: 가로로 이어지는 상자와 화살표
+  steps(s, pts) {
+    if (pts.length > 6 || pts.length < 2) return this.points(s, pts);
+    const n = pts.length, gap = 0.4, cw = (RP.CW - gap * (n - 1)) / n, y = RP.TOP + 0.4;
+    pts.forEach((p, i) => {
+      const cx = RP.X + i * (cw + gap);
+      this.rect(s, { x: cx, y, w: cw, h: 1.15, fill: { color: i === n - 1 ? SP.NAVY : SP.ACCENT } });
+      this.t(s, [
+        { text: `STEP ${i + 1}`, options: { fontSize: 10, color: "C9D6E8", breakLine: true } },
+        { text: rpClip(p.head, 20), options: { fontSize: n > 4 ? 14 : 17, bold: true, color: "FFFFFF" } },
+      ], { x: cx + 0.15, y, w: cw - 0.3, h: 1.15, valign: "middle", fit: "shrink" });
+      this.rect(s, { x: cx, y: y + 1.15, w: cw, h: 2.1, fill: { color: RP.BG } });
+      this.t(s, rpClip(p.text, 80), { x: cx + 0.18, y: y + 1.35, w: cw - 0.36, h: 1.75, fontSize: n > 4 ? 14 : 16, color: RP.BODY, lineSpacingMultiple: 1.2, fit: "shrink" });
+      if (i < n - 1) s.addShape(this.pptx.ShapeType.rightArrow, { x: cx + cw + 0.08, y: y + 0.38, w: gap - 0.16, h: 0.4, fill: { color: "9FB4D9" }, line: { type: "none" } });
+    });
+  }
+
+  // 핵심 수치: 큰 숫자 + 설명
+  metrics(s, pts) {
+    pts = pts.slice(0, 4);
+    const n = pts.length, gap = 0.35, cw = (RP.CW - gap * (n - 1)) / n, y = RP.TOP + 0.6;
+    pts.forEach((p, i) => {
+      const cx = RP.X + i * (cw + gap);
+      this.rect(s, { x: cx, y, w: cw, h: 2.8, fill: { color: RP.BG } });
+      this.t(s, rpClip(p.head, 10), { x: cx, y: y + 0.35, w: cw, h: 1.3, fontSize: 44, bold: true, color: SP.ACCENT, align: "center", valign: "middle", fit: "shrink" });
+      this.t(s, rpClip(p.text, 40), { x: cx + 0.25, y: y + 1.75, w: cw - 0.5, h: 0.85, fontSize: 15, color: RP.BODY, align: "center", fit: "shrink" });
+    });
+  }
+
+  // 표: 남색 머리행 + 줄무늬, 넘치면 글자를 줄인다 (최대 10행)
+  table(s, head, rows) {
+    if (!head.length) return;
+    const all = [head, ...rows.slice(0, 10)].map((r) => head.map((_, i) => String(r[i] ?? "")));
+    let pt = head.length <= 3 ? 16 : head.length <= 5 ? 14 : 12;
+    const need = head.map((_, i) => Math.min(30, Math.max(4, ...all.map((r) => spUnits(r[i])))));
+    const total = need.reduce((a, b) => a + b, 0);
+    const colW = need.map((u) => (RP.CW * u) / total);
+    const height = (p) => all.reduce((h, r) => h + Math.max(...r.map((c, i) => spLines(c, colW[i] - 0.3, p))) * spLineH(p) + 0.24, 0);
+    while (pt > 10 && height(pt) > RP.H) pt--;
+    const body = all.map((r, ri) => r.map((c) => ({
+      text: c,
+      options: ri === 0 ? { bold: true, color: "FFFFFF", fill: { color: SP.NAVY } } : { fill: { color: ri % 2 ? "FFFFFF" : RP.BG } },
+    })));
+    s.addTable(body, { x: RP.X, y: RP.TOP, w: RP.CW, colW, fontFace: SP.FONT, fontSize: pt, color: RP.INK, border: { type: "solid", color: RP.LINE, pt: 0.75 }, margin: [0.12, 0.14, 0.12, 0.14], valign: "middle" });
+  }
+
+  // 흐름도(Mermaid → 그림). 설명 요점이 있으면 오른쪽에 둔다
+  async diagram(s, code, pts) {
+    const side = pts.length ? 3.9 : 0;
+    const maxW = RP.CW - (side ? side + 0.3 : 0), maxH = RP.H;
+    try {
+      const img = await spMermaid(code);
+      let w = Math.min(maxW, (img.w / 96) * 1.8), h = (w * img.h) / img.w;
+      if (h > maxH) { h = maxH; w = (h * img.w) / img.h; }
+      s.addImage({ data: img.data, x: RP.X + (maxW - w) / 2, y: RP.TOP + (maxH - h) / 2, w, h });
+    } catch {
+      this.t(s, "흐름도를 그림으로 만들지 못했습니다. 발표자 노트를 참고해 주세요.", { x: RP.X, y: RP.TOP, w: maxW, h: 0.5, fontSize: 13, color: SP.MUTED });
+    }
+    if (side) this.points(s, pts.slice(0, 3), RP.X + maxW + 0.3, side);
+  }
+}
+
+async function downloadReportPptx(t, stage, o) {
+  const PptxGenJS = await loadPptx();
+  const pptx = new PptxGenJS();
+  pptx.layout = "LAYOUT_WIDE";
+  const stageName = status.team[stage].name;
+  const st = t.stages[stage];
+  pptx.title = `${t.title} - ${stageName} 보고`;
+  const deck = new ReportDeck(pptx, `${t.title} · ${stageName}`);
+
+  // 표지
+  const cover = pptx.addSlide();
+  cover.background = { color: SP.NAVY };
+  deck.rect(cover, { x: 0.8, y: 1.55, w: 2.8, h: 0.42, fill: { color: SP.ACCENT } });
+  deck.t(cover, `${stageName} 보고`, { x: 0.8, y: 1.55, w: 2.8, h: 0.42, fontSize: 13, bold: true, color: "FFFFFF", align: "center", valign: "middle" });
+  deck.t(cover, t.title, { x: 0.8, y: 2.2, w: 11.7, h: 1.2, fontSize: 36, bold: true, color: "FFFFFF", valign: "middle", fit: "shrink" });
+  if (o.headline) {
+    deck.rect(cover, { x: 0.8, y: 3.75, w: 0.08, h: 0.9, fill: { color: "7FA7F5" } });
+    deck.t(cover, rpClip(o.headline, 90), { x: 1.1, y: 3.75, w: 11.4, h: 0.9, fontSize: 19, color: "E6EDF6", valign: "middle", fit: "shrink" });
+  }
+  const pl = st.review ? ` · PL 검토 ${st.review.decision === "approve" ? "승인 권고" : "수정 권고"}` : "";
+  deck.t(cover, `요청 ${t.id} · ${STAGE_STATUS[st.status] ?? st.status}${pl} · ${new Date().toLocaleDateString("ko-KR")}`, { x: 0.8, y: 6.4, w: 11.7, h: 0.4, fontSize: 12, color: "C9D6E8" });
+  if (st.review) cover.addNotes(`PL 1차 검토 — ${st.review.summary}`);
+
+  // 한눈에 보기
+  const summary = (o.summary ?? []).filter(Boolean).slice(0, 5);
+  if (summary.length) {
+    const s = deck.frame("한눈에 보기", o.headline);
+    const rh = Math.min(1.05, RP.H / summary.length);
+    summary.forEach((line, i) => {
+      const y = RP.TOP + i * rh;
+      deck.t(s, String(i + 1).padStart(2, "0"), { x: RP.X, y, w: 0.9, h: rh, fontSize: 24, bold: true, color: SP.ACCENT, valign: "middle" });
+      deck.t(s, rpClip(line, 70), { x: RP.X + 1.0, y, w: RP.CW - 1.0, h: rh, fontSize: 19, valign: "middle", fit: "shrink" });
+      if (i < summary.length - 1) s.addShape(pptx.ShapeType.line, { x: RP.X + 1.0, y: y + rh, w: RP.CW - 1.0, h: 0, line: { color: RP.LINE, width: 0.75 } });
+    });
+  }
+
+  // 본문: 한 장 한 메시지
+  for (const sl of o.slides ?? []) {
+    const s = deck.frame(sl.title, sl.message, sl.notes);
+    const pts = (sl.points ?? []).filter((p) => p?.head || p?.text);
+    if (sl.layout === "table" && sl.table?.head?.length) deck.table(s, sl.table.head, sl.table.rows ?? []);
+    else if (sl.layout === "diagram" && sl.diagram?.trim()) await deck.diagram(s, sl.diagram, pts);
+    else if (sl.layout === "steps") deck.steps(s, pts);
+    else if (sl.layout === "metrics" && pts.length) deck.metrics(s, pts);
+    else if (pts.length) deck.points(s, pts);
+    else if (sl.table?.head?.length) deck.table(s, sl.table.head, sl.table.rows ?? []);
+  }
+
+  // 확인 필요 · 다음 단계
+  const issues = (o.issues ?? []).filter((p) => p?.head || p?.text).slice(0, 4);
+  if (issues.length || o.next) {
+    const s = deck.frame(issues.length ? "확인 필요 · 다음 단계" : "다음 단계", issues.length ? `결정·확인이 필요한 사항 ${issues.length}건` : "");
+    const lw = o.next && issues.length ? 7.6 : RP.CW;
+    const ih = Math.min(1.1, (RP.H - 0.2 * (issues.length - 1)) / Math.max(1, issues.length));
+    issues.forEach((p, i) => {
+      const y = RP.TOP + i * (ih + 0.2);
+      deck.rect(s, { x: RP.X, y, w: lw, h: ih, fill: { color: RP.WARN_BG } });
+      deck.rect(s, { x: RP.X, y, w: 0.07, h: ih, fill: { color: RP.WARN } });
+      deck.t(s, [
+        { text: rpClip(p.head, 30), options: { fontSize: 16, bold: true, color: RP.WARN, breakLine: true } },
+        { text: rpClip(p.text, 90), options: { fontSize: 13, color: RP.BODY } },
+      ], { x: RP.X + 0.3, y: y + 0.08, w: lw - 0.5, h: ih - 0.16, valign: "middle", paraSpaceAfter: 3, fit: "shrink" });
+    });
+    if (o.next) {
+      const x = issues.length ? RP.X + lw + 0.35 : RP.X, w = issues.length ? RP.CW - lw - 0.35 : RP.CW;
+      deck.rect(s, { x, y: RP.TOP, w, h: 3.4, fill: { color: SP.NAVY } });
+      deck.t(s, "다음 단계", { x: x + 0.35, y: RP.TOP + 0.3, w: w - 0.7, h: 0.4, fontSize: 13, bold: true, color: "9FB4D9" });
+      deck.t(s, rpClip(o.next, 160), { x: x + 0.35, y: RP.TOP + 0.85, w: w - 0.7, h: 2.3, fontSize: 17, color: "FFFFFF", lineSpacingMultiple: 1.25, fit: "shrink" });
+    }
+  }
+
+  await pptx.writeFile({ fileName: `${t.id}(${t.title})_${stageName}_보고_${new Date().toISOString().slice(0, 10)}.pptx`.replace(/[\\/:*?"<>|]/g, "_") });
+}

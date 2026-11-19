@@ -1,0 +1,869 @@
+{
+  "id": "20261119-f26e72",
+  "title": "자재 리스트 조회 펀션 신규 개발",
+  "status": "awaiting_review",
+  "currentStage": "development",
+  "stages": {
+    "analysis": {
+      "status": "approved",
+      "review": {
+        "decision": "approve",
+        "send_back_to": "analysis",
+        "feedback": "",
+        "summary": "앞선 보고는 분석 담당의 작업이 끝나기 전에 나간 것이고, 지금 분석서(01_analysis.md)가 완성되어 이 보고로 대체합니다. 분석서는 요청대로 '자재유형을 하나 넣으면 자재코드·자재 내역·기본단위 목록과 처리 결과 메시지를 돌려주는 함수(Z_MM_GET_MATERIAL_LIST, 같은 이름의 기존 함수 없음)'로 정리했고, 테스트로 확인할 수 있는 합격 기준 14개를 두었습니다. 다만 이 SAP 시스템은 조회 도구로 테이블 필드 정보를 읽을 수 없어, 테이블이 있다는 것만 확인하고 필드 길이 등은 SAP 표준 기준으로 적었습니다. 삭제 자재 포함 여부, 내역 언어, 외부 시스템 호출 여부 같은 현업 확인 사항 11개는 기본 가정을 정해 두었기 때문에 설계 단계로 넘어가도 됩니다."
+      },
+      "attempts": 2,
+      "directive": null,
+      "directives": [],
+      "startedAt": "2026-11-19T05:11:53.680Z",
+      "endedAt": "2026-11-19T05:36:13.717Z",
+      "verifications": [
+        {
+          "at": "2026-11-19T05:34:09.250Z",
+          "attempt": 2,
+          "status": "done",
+          "verdict": "warn",
+          "summary": "분석서는 요청한 세 가지 결과 항목(자재코드, 자재내역, 기본단위)과 자재유형 입력을 모두 기능 요구사항으로 옮겼고, 언급한 SAP 테이블과 기존 함수는 시스템에서 실제로 있는 것을 확인했습니다. 다만 분석 담당이 요청에 없는 기능 6개(여러 자재유형 입력, 삭제 자재 제외, 최대 건수, 권한 점검, 외부 호출, 언어 선택)를 가정으로 추가했습니다. 특히 '삭제 표시된 자재는 기본으로 빼고 보여준다'는 가정은 결과 목록을 바꾸므로 현업 확인이 필요합니다. 한 항목은 근거를 '팀장 지시'라고 적었으나 실제로 그런 지시 기록이 없어 근거 표기를 바로잡아야 합니다. 승인은 할 수 있지만 아래 확인 사항을 권장합니다.",
+          "checks": [
+            {
+              "item": "요청 항목이 기능 요구사항(FR)으로 옮겨졌는지",
+              "result": "ok",
+              "detail": "request.md의 요청은 입력 '자재유형'과 출력 '자재코드, 자재코드 내역, 기본단위 리스트' 두 문장뿐입니다. 입력은 FR-01(IV_MTART), 출력은 FR-04(MATNR, MEINS)와 FR-05(MAKTX), 목록 반환은 FR-06(ET_LIST)에 빠짐없이 대응합니다."
+            },
+            {
+              "item": "첨부 자료 대조",
+              "result": "ok",
+              "detail": "작업 폴더에는 request.md, 01_analysis.md, ticket.json만 있고 attachments/ 폴더가 없습니다. 분석서에도 '첨부 없음'이라고 맞게 적혀 있습니다."
+            },
+            {
+              "item": "'펀션'의 해석",
+              "result": "ok",
+              "detail": "'펀션'을 화면이 없는 함수 모듈(FM)로 해석했고, 가정 A-01로 밝혀 두었습니다. 요청 문구와 맞는 해석입니다."
+            },
+            {
+              "item": "요청에 없는 기능 추가 여부",
+              "result": "warn",
+              "detail": "요청에 없는 FR-02(자재유형 범위 입력), FR-08(삭제 자재 제외와 포함 옵션), FR-09(최대 건수), FR-10(권한 점검), FR-11(RFC 원격 호출), IV_SPRAS(언어 입력)가 추가됐습니다. 모두 '가정'으로 표시되어 있고 Q1~Q8과 연결되어 있어 숨긴 것은 아닙니다. 다만 FR-08, FR-09는 '권장', FR-11도 '권장'으로 되어 있어 현업 답이 없으면 그대로 개발 범위에 들어갑니다. 특히 FR-08의 기본 동작(삭제 표시 자재 제외)은 요청한 '해당 자재유형의 자재 목록'과 결과 건수가 달라지므로 현업에게 먼저 확인해야 합니다(Q3)."
+            },
+            {
+              "item": "근거 표기의 정확성",
+              "result": "warn",
+              "detail": "FR-07의 근거 칸에 '팀장 지시: 성공/데이터 없음/잘못된 자재유형 구분'이라고 적혀 있습니다. 하지만 ticket.json의 directives와 feedback은 비어 있고 request.md에도 그런 문구가 없습니다. 다른 경로(PL 프롬프트 등)로 전달됐을 가능성은 확인하지 못했지만, 기록상으로는 근거가 확인되지 않습니다."
+            },
+            {
+              "item": "SAP 테이블 존재 (시스템 조회)",
+              "result": "ok",
+              "detail": "mrd-abap-rw에서 SearchObject로 MARA(일반자재데이타), MAKT(자재 내역), T134(자재 유형)가 모두 TABL/DT로 있는 것을 직접 확인했습니다. MATDOC이 없어 ECC라는 판정도 맞습니다."
+            },
+            {
+              "item": "SAP 필드·데이터 요소 확인",
+              "result": "warn",
+              "detail": "MATNR 도메인 '자재번호 (필드 C18)'와 LVOMA 데이터 요소는 있는 것을 확인했습니다. 하지만 GetTable MAKT가 404를 돌려줘 이 시스템에서는 테이블의 필드 목록을 읽을 수 없습니다. 그래서 MARA-MTART/MEINS/LVORM, MAKT-MAKTX, T134-BEGRU 같은 필드가 실제로 있는지는 직접 확인하지 못했습니다. 분석서도 이 점을 '시스템 확인 필요(SE11)'로 정직하게 적어 두었습니다. 모두 SAP 표준 필드라 문제가 될 가능성은 낮습니다."
+            },
+            {
+              "item": "기존·재사용 오브젝트 언급의 정확성",
+              "result": "ok",
+              "detail": "Z_MM_MP_SELECT_MATNR_DATA(ZMMD), 함수 그룹 ZFGMM41 'MM Common Function'(ZMMD), 범위 테이블 타입 MD_RANGE_T_MTART, 권한 객체 M_MATE_MAR가 시스템에 있는 것을 확인했습니다. 'Z_MM_GET_MAT*'로 검색하면 Z_MM_GET_MATNR, Z_MM_GET_MATNR_SUB만 나오므로 제안한 이름 Z_MM_GET_MATERIAL_LIST와 겹치는 함수는 없습니다."
+            },
+            {
+              "item": "개발표준 이름 규칙",
+              "result": "ok",
+              "detail": "standards/handbook.md의 Function Module 규칙('Z_' + 서술적 단어)에 Z_MM_GET_MATERIAL_LIST가 맞습니다. 함수 그룹 ZFGMM41도 규칙(Z+FG+영역+번호)에 맞습니다."
+            },
+            {
+              "item": "모호한 부분을 가정·현업 확인 사항으로 드러냈는지",
+              "result": "ok",
+              "detail": "호출 주체, 단일/범위 입력, 삭제 자재, 내역 언어, 표시 형식, 건수, 메시지 형식, 권한, 함수 그룹, 기존 함수 재사용, 출력 항목 확정 여부를 Q1~Q11로 정리했고, 각 질문에 '답이 없을 때의 가정'을 붙였습니다. 개발팀이 직접 확인할 SE11/SE37 목록도 따로 두었습니다."
+            },
+            {
+              "item": "인수 기준(AC)의 테스트 가능성",
+              "result": "ok",
+              "detail": "AC-01~AC-14가 각 FR에 연결되어 있고 조건과 기대 결과가 구체적입니다. 다만 AC-01은 기대 건수를 'LVORM≠X'로 잡고 있어 FR-08 가정에 묶여 있습니다. Q3의 답에 따라 함께 고쳐야 합니다."
+            }
+          ],
+          "directive": "분석 담당에게: (1) FR-07 근거 칸의 '팀장 지시'는 기록으로 확인되지 않으므로 '가정'으로 고치거나 지시 출처를 적어 주세요. (2) 요청 범위 밖인 FR-02, FR-08, FR-09, FR-10, FR-11과 IV_SPRAS는 '현업 확인 전 추가 기능'이라고 표에서 한눈에 보이게 구분해 주세요. 그중 FR-08(삭제 표시 자재 기본 제외)은 결과 건수를 바꾸므로 Q3의 답이 오기 전까지 우선순위를 '권장'에서 '확인 대기'로 낮추고, AC-01의 기대 건수 조건도 Q3 답에 따라 바뀐다고 적어 주세요. (3) 이 시스템에서는 필드 정의를 조회할 수 없으므로, SE11 확인 목록을 설계 단계에 들어가기 전 필수 확인 항목으로 유지해 주세요. 팀장님께는 승인 전에 Q3(삭제 자재 포함 여부)과 Q1(외부 호출 여부)을 현업에 먼저 물어보시길 권합니다.",
+          "send_back_to": "analysis"
+        }
+      ]
+    },
+    "design": {
+      "status": "approved",
+      "review": {
+        "decision": "approve",
+        "send_back_to": "design",
+        "feedback": "",
+        "summary": "설계서(02_design.md)는 분석서대로 함수 Z_MM_GET_MATERIAL_LIST를 설계했습니다. 자재유형을 넣으면 자재코드·자재내역·기본단위 목록과 처리 결과 메시지를 돌려줍니다. 실제 처리는 별도 클래스(ZCL_MM_MTART_MATLIST)가 맡고, 함수는 이 클래스를 부르기만 합니다. 이렇게 나눈 덕분에 자동 단위 테스트 15건을 붙일 수 있습니다. 새로 만드는 이름 6개는 모두 시스템에서 겹치는 것이 없는지 확인했습니다. 요청에 없던 기능은 [추가]로 표시했습니다. 그중 '삭제 표시 자재 기본 제외'는 현업 답에 따라 무엇이 바뀌는지 표로 정리해 두었습니다. 개발 단계는 이 설계서로 바로 진행할 수 있습니다. 다만 보드의 개발계 반영 기능은 클래스만 올릴 수 있습니다(반영 코드에서 확인함). 함수·함수 그룹·결과 구조·메시지는 SE11/SE37/SE91에서 사람이 직접 만들어야 하므로, 누가 어떤 순서로 만들지 미리 정해 주셔야 합니다."
+      },
+      "attempts": 1,
+      "directive": null,
+      "directives": [],
+      "startedAt": "2026-11-19T05:36:13.776Z",
+      "endedAt": "2026-11-19T05:46:12.243Z"
+    },
+    "development": {
+      "status": "review",
+      "review": {
+        "decision": "approve",
+        "send_back_to": "development",
+        "feedback": "",
+        "summary": "개발 담당이 설계서대로 실제 처리 로직 클래스(ZCL_MM_MTART_MATLIST)와 함수(Z_MM_GET_MATERIAL_LIST)의 소스, 개발 결과서(03_development.md)를 만들었습니다. 자재유형을 넣으면 자재코드·자재내역·기본단위 목록과 결과 메시지를 돌려줍니다. 소스를 직접 읽어 보니 처리 순서(입력 확인 → 자재유형 확인 → 권한 확인 → 자재 조회 → 내역 붙이기)와 이 시스템 버전에서 쓰면 안 되는 문법 제한을 모두 지켰고, 설계와 다른 점 9건은 모두 동작이 같고 이유도 적혀 있습니다. 다만 SAP에 실제로 올려 문법 검사·활성화한 것은 아니므로 반영 때 처음 확인됩니다. 결과 구조·메시지·함수 그룹·함수는 사람이 SE11/SE91/SE37에서 직접 만들어야 하고, 특히 결과 구조(ZSMM3600/ZTTMM3600)를 먼저 만들지 않으면 클래스 반영이 실패하니 순서를 지켜 주셔야 합니다."
+      },
+      "attempts": 1,
+      "directive": null,
+      "directives": [],
+      "startedAt": "2026-11-19T05:46:12.267Z",
+      "endedAt": null
+    },
+    "test": {
+      "status": "pending",
+      "review": null,
+      "attempts": 0,
+      "directive": null,
+      "directives": [],
+      "startedAt": null,
+      "endedAt": null
+    },
+    "deploy": {
+      "status": "pending",
+      "review": null,
+      "attempts": 0,
+      "directive": null,
+      "directives": [],
+      "startedAt": null,
+      "endedAt": null
+    }
+  },
+  "revisionCount": 0,
+  "deployConfig": null,
+  "deployResult": null,
+  "system": "mrd-abap-rw",
+  "logs": [
+    {
+      "at": "2026-11-19T05:11:53.673Z",
+      "agent": "PL",
+      "text": "새 개발 요청을 접수했습니다 (대상 시스템 mrd-abap-rw). 요구사항 분석부터 진행합니다."
+    },
+    {
+      "at": "2026-11-19T05:11:53.680Z",
+      "agent": "요구사항 분석 담당",
+      "text": "작업을 시작합니다."
+    },
+    {
+      "at": "2026-11-19T05:11:53.683Z",
+      "agent": "PL",
+      "text": "sap-analyst 에이전트에게 작업을 지시했습니다."
+    },
+    {
+      "at": "2026-11-19T05:12:30.305Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: GetTable MARA 40"
+    },
+    {
+      "at": "2026-11-19T05:12:30.486Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: GetTable MAKT"
+    },
+    {
+      "at": "2026-11-19T05:12:30.881Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: GetTable T134"
+    },
+    {
+      "at": "2026-11-19T05:12:31.307Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: GetTypeInfo MATNR false"
+    },
+    {
+      "at": "2026-11-19T05:12:36.024Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: GetTable MARA metadata"
+    },
+    {
+      "at": "2026-11-19T05:12:36.574Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject MAKT false"
+    },
+    {
+      "at": "2026-11-19T05:12:37.223Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject T134* TABL false"
+    },
+    {
+      "at": "2026-11-19T05:12:37.674Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject Z*MAT*LIST* false"
+    },
+    {
+      "at": "2026-11-19T05:12:45.018Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject Z_MD_MIGMAT_LIST_GET full false"
+    },
+    {
+      "at": "2026-11-19T05:12:45.872Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject Z*MAT* FUNC 200 false"
+    },
+    {
+      "at": "2026-11-19T05:12:46.423Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject BAPI_MATERIAL_GETLIST false"
+    },
+    {
+      "at": "2026-11-19T05:12:46.935Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject MARA TABL false"
+    },
+    {
+      "at": "2026-11-19T05:12:54.723Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: GetTypeInfo MTART false"
+    },
+    {
+      "at": "2026-11-19T05:12:55.272Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: GetStructure BAPIRET2 30"
+    },
+    {
+      "at": "2026-11-19T05:12:55.825Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject CL_ABAP_CORRESPONDING false"
+    },
+    {
+      "at": "2026-11-19T05:12:56.426Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject CL_ABAP_TESTDOUBLE false"
+    },
+    {
+      "at": "2026-11-19T05:12:57.075Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject ZFGMM* FUGR false"
+    },
+    {
+      "at": "2026-11-19T05:12:57.633Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject ZFGMD* FUGR false"
+    },
+    {
+      "at": "2026-11-19T05:13:05.530Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject MATDOC false"
+    },
+    {
+      "at": "2026-11-19T05:13:06.243Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject ZMM MSAG false"
+    },
+    {
+      "at": "2026-11-19T05:13:06.882Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject M_MATE_MAR false"
+    },
+    {
+      "at": "2026-11-19T05:13:07.510Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject ZMM_MATERIAL_LIST* false"
+    },
+    {
+      "at": "2026-11-19T05:13:07.888Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject BAPIRET2 false"
+    },
+    {
+      "at": "2026-11-19T05:13:16.446Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject Z_MM_MAT*LIST* false"
+    },
+    {
+      "at": "2026-11-19T05:13:17.121Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject MAKTX DTEL false"
+    },
+    {
+      "at": "2026-11-19T05:13:17.747Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject MEINS DTEL false"
+    },
+    {
+      "at": "2026-11-19T05:13:18.408Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject MTART DTEL false"
+    },
+    {
+      "at": "2026-11-19T05:13:19.099Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject MATNR DTEL false"
+    },
+    {
+      "at": "2026-11-19T05:13:19.603Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject T134T full false"
+    },
+    {
+      "at": "2026-11-19T05:13:46.093Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject Z_MM_GET_MAT* false"
+    },
+    {
+      "at": "2026-11-19T05:13:46.640Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject ZSMM_MAT* false"
+    },
+    {
+      "at": "2026-11-19T05:13:47.190Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject ZFGMM41 full false"
+    },
+    {
+      "at": "2026-11-19T05:13:53.158Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject ZTTMM* 10 false"
+    },
+    {
+      "at": "2026-11-19T05:13:53.956Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject Z_MD_MAT_SEARCH_BYCHAR full false"
+    },
+    {
+      "at": "2026-11-19T05:13:54.558Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject Z_MM_MP_SELECT_MATNR_DATA full false"
+    },
+    {
+      "at": "2026-11-19T05:14:00.026Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject Z*MM* TTYP 15 false"
+    },
+    {
+      "at": "2026-11-19T05:14:14.142Z",
+      "agent": "PL",
+      "text": "⚠️ 요구사항 분석 담당 작업 실패 — 서버 재시작으로 작업이 중단되었습니다. 다시 시작해 주세요."
+    },
+    {
+      "at": "2026-11-19T05:15:23.192Z",
+      "agent": "요구사항 분석 담당",
+      "text": "작업을 시작합니다."
+    },
+    {
+      "at": "2026-11-19T05:15:23.198Z",
+      "agent": "PL",
+      "text": "sap-analyst 에이전트에게 작업을 지시했습니다."
+    },
+    {
+      "at": "2026-11-19T05:15:58.942Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: GetTable MARA 60"
+    },
+    {
+      "at": "2026-11-19T05:15:59.336Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: GetTable MAKT"
+    },
+    {
+      "at": "2026-11-19T05:15:59.551Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: GetTable T134"
+    },
+    {
+      "at": "2026-11-19T05:16:15.611Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: GetTable MARA metadata"
+    },
+    {
+      "at": "2026-11-19T05:16:16.174Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: GetStructure MARA 40"
+    },
+    {
+      "at": "2026-11-19T05:16:16.537Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: GetTypeInfo MTART"
+    },
+    {
+      "at": "2026-11-19T05:16:16.969Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: GetTypeInfo MATNR false"
+    },
+    {
+      "at": "2026-11-19T05:16:25.594Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject MARA false 10"
+    },
+    {
+      "at": "2026-11-19T05:16:26.272Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject BAPI_MATERIAL_GETLIST false 10"
+    },
+    {
+      "at": "2026-11-19T05:16:34.636Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: GetTypeInfo MAKTX false"
+    },
+    {
+      "at": "2026-11-19T05:16:34.909Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: GetTypeInfo MEINS false"
+    },
+    {
+      "at": "2026-11-19T05:16:35.504Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: GetTypeInfo LVOMA false"
+    },
+    {
+      "at": "2026-11-19T05:16:36.056Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject MTART false 10"
+    },
+    {
+      "at": "2026-11-19T05:16:44.119Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject MAKT false 10"
+    },
+    {
+      "at": "2026-11-19T05:16:45.161Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject T134* false 20 TABL"
+    },
+    {
+      "at": "2026-11-19T05:16:45.648Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject Z*MATERIAL* false 50"
+    },
+    {
+      "at": "2026-11-19T05:16:46.339Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject Z*MAT*LIST* false 50"
+    },
+    {
+      "at": "2026-11-19T05:16:46.962Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject MATDOC false 5"
+    },
+    {
+      "at": "2026-11-19T05:16:58.666Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject Z*MAT* TTYP false 30"
+    },
+    {
+      "at": "2026-11-19T05:16:59.290Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject ZMM* FUGR false 30"
+    },
+    {
+      "at": "2026-11-19T05:17:11.031Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject *MTART* TTYP false 20"
+    },
+    {
+      "at": "2026-11-19T05:17:11.709Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject MATNR false 10"
+    },
+    {
+      "at": "2026-11-19T05:17:12.403Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject BAPIRET2* false 10"
+    },
+    {
+      "at": "2026-11-19T05:17:13.197Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject ZMM MSAG false 5"
+    },
+    {
+      "at": "2026-11-19T05:17:13.958Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject BAPI_MATERIAL_G* FUNC false 20"
+    },
+    {
+      "at": "2026-11-19T05:17:21.223Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject MAKTX false 5"
+    },
+    {
+      "at": "2026-11-19T05:17:21.901Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject MEINS false 5"
+    },
+    {
+      "at": "2026-11-19T05:17:22.535Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject LVOMA false 5"
+    },
+    {
+      "at": "2026-11-19T05:17:23.387Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject Z*MM* FUGR/F false 30"
+    },
+    {
+      "at": "2026-11-19T05:17:24.043Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject M_MATE_MAR false 5"
+    },
+    {
+      "at": "2026-11-19T05:17:31.380Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject ZFGMM* FUGR/F false 100"
+    },
+    {
+      "at": "2026-11-19T05:17:32.335Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject Z_MM_*MAT* FUNC false 60"
+    },
+    {
+      "at": "2026-11-19T05:17:32.830Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject T134T false 5"
+    },
+    {
+      "at": "2026-11-19T05:17:40.783Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject CL_ABAP_CORRESPONDING false 3"
+    },
+    {
+      "at": "2026-11-19T05:17:41.543Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject CL_ABAP_TESTDOUBLE false 3"
+    },
+    {
+      "at": "2026-11-19T05:17:42.068Z",
+      "agent": "요구사항 분석 담당",
+      "text": "🔎 SAP 조회: SearchObject SPRAS false 5"
+    },
+    {
+      "at": "2026-11-19T05:19:47.063Z",
+      "agent": "요구사항 분석 담당",
+      "text": "✏️ 01_analysis.md 작성"
+    },
+    {
+      "at": "2026-11-19T05:20:11.715Z",
+      "agent": "PL",
+      "text": "📨 팀장님께 요구사항 분석 담당 결과를 보고드립니다 (권고: 승인) — 앞선 보고는 분석 담당의 작업이 끝나기 전에 나간 것이고, 지금 분석서(01_analysis.md)가 완성되어 이 보고로 대체합니다. 분석서는 요청대로 '자재유형을 하나 넣으면 자재코드·자재 내역·기본단위 목록과 처리 결과 메시지를 돌려주는 함수(Z_MM_GET_MATERIAL_LIST, 같은 이름의 기존 함수 없음)'로 정리했고, 테스트로 확인할 수 있는 합격 기준 14개를 두었습니다. 다만 이 SAP 시스템은 조회 도구로 테이블 필드 정보를 읽을 수 없어, 테이블이 있다는 것만 확인하고 필드 길이 등은 SAP 표준 기준으로 적었습니다. 삭제 자재 포함 여부, 내역 언어, 외부 시스템 호출 여부 같은 현업 확인 사항 11개는 기본 가정을 정해 두었기 때문에 설계 단계로 넘어가도 됩니다."
+    },
+    {
+      "at": "2026-11-19T05:34:09.250Z",
+      "agent": "팀장",
+      "text": "🤖 요구사항 분석 담당 산출물 AI 검증을 요청했습니다."
+    },
+    {
+      "at": "2026-11-19T05:35:24.461Z",
+      "agent": "AI 검증",
+      "text": "🤖 요구사항 분석 담당 검증 결과: 주의 (확인 필요 3건) — 분석서는 요청한 세 가지 결과 항목(자재코드, 자재내역, 기본단위)과 자재유형 입력을 모두 기능 요구사항으로 옮겼고, 언급한 SAP 테이블과 기존 함수는 시스템에서 실제로 있는 것을 확인했습니다. 다만 분석 담당이 요청에 없는 기능 6개(여러 자재유형 입력, 삭제 자재 제외, 최대 건수, 권한 점검, 외부 호출, 언어 선택)를 가정으로 추가했습니다. 특히 '삭제 표시된 자재는 기본으로 빼고 보여준다'는 가정은 결과 목록을 바꾸므로 현업 확인이 필요합니다. 한 항목은 근거를 '팀장 지시'라고 적었으나 실제로 그런 지시 기록이 없어 근거 표기를 바로잡아야 합니다. 승인은 할 수 있지만 아래 확인 사항을 권장합니다."
+    },
+    {
+      "at": "2026-11-19T05:35:40.454Z",
+      "agent": "팀장",
+      "text": "📊 요구사항 분석 담당 보고용 PPT 요약을 요청했습니다."
+    },
+    {
+      "at": "2026-11-19T05:36:13.717Z",
+      "agent": "팀장",
+      "text": "✅ 요구사항 분석 담당 결과를 승인했습니다."
+    },
+    {
+      "at": "2026-11-19T05:36:13.724Z",
+      "agent": "PL",
+      "text": "설계 담당 작업 차례입니다. Claude Code에서 진행합니다."
+    },
+    {
+      "at": "2026-11-19T05:36:13.776Z",
+      "agent": "설계 담당",
+      "text": "작업을 시작합니다."
+    },
+    {
+      "at": "2026-11-19T05:36:13.796Z",
+      "agent": "PL",
+      "text": "sap-designer 에이전트에게 작업을 지시했습니다."
+    },
+    {
+      "at": "2026-11-19T05:36:37.172Z",
+      "agent": "보고 자료",
+      "text": "📊 요구사항 분석 담당 보고용 PPT 요약을 만들었습니다 (본문 9장)."
+    },
+    {
+      "at": "2026-11-19T05:37:15.664Z",
+      "agent": "설계 담당",
+      "text": "🔎 SAP 조회: SearchObject ZFGMM* FUGR false 200"
+    },
+    {
+      "at": "2026-11-19T05:37:16.208Z",
+      "agent": "설계 담당",
+      "text": "🔎 SAP 조회: SearchObject Z_MM_GET_MAT* false"
+    },
+    {
+      "at": "2026-11-19T05:37:16.961Z",
+      "agent": "설계 담당",
+      "text": "🔎 SAP 조회: SearchObject ZMMM* MSAG false"
+    },
+    {
+      "at": "2026-11-19T05:37:17.672Z",
+      "agent": "설계 담당",
+      "text": "🔎 SAP 조회: SearchObject ZSMM* STRU false 300"
+    },
+    {
+      "at": "2026-11-19T05:37:29.724Z",
+      "agent": "설계 담당",
+      "text": "🔎 SAP 조회: SearchObject ZSMM* TABL/DS false 400"
+    },
+    {
+      "at": "2026-11-19T05:37:30.265Z",
+      "agent": "설계 담당",
+      "text": "🔎 SAP 조회: SearchObject ZFGMM34* false"
+    },
+    {
+      "at": "2026-11-19T05:37:30.813Z",
+      "agent": "설계 담당",
+      "text": "🔎 SAP 조회: SearchObject ZCL_MM_MAT* false"
+    },
+    {
+      "at": "2026-11-19T05:37:31.169Z",
+      "agent": "설계 담당",
+      "text": "🔎 SAP 조회: SearchObject ZMMM3* false"
+    },
+    {
+      "at": "2026-11-19T05:37:38.906Z",
+      "agent": "설계 담당",
+      "text": "🔎 SAP 조회: SearchObject ZSMM* false 500"
+    },
+    {
+      "at": "2026-11-19T05:37:46.068Z",
+      "agent": "설계 담당",
+      "text": "🔎 SAP 조회: SearchObject ZSMM35* false 200"
+    },
+    {
+      "at": "2026-11-19T05:37:46.623Z",
+      "agent": "설계 담당",
+      "text": "🔎 SAP 조회: SearchObject ZSMM[4-9]* false 200"
+    },
+    {
+      "at": "2026-11-19T05:37:54.057Z",
+      "agent": "설계 담당",
+      "text": "🔎 SAP 조회: SearchObject ZSMM36* false"
+    },
+    {
+      "at": "2026-11-19T05:37:54.577Z",
+      "agent": "설계 담당",
+      "text": "🔎 SAP 조회: SearchObject ZSMM4* false"
+    },
+    {
+      "at": "2026-11-19T05:37:55.126Z",
+      "agent": "설계 담당",
+      "text": "🔎 SAP 조회: SearchObject ZSMM5* false"
+    },
+    {
+      "at": "2026-11-19T05:37:55.510Z",
+      "agent": "설계 담당",
+      "text": "🔎 SAP 조회: SearchObject ZSMM9* false"
+    },
+    {
+      "at": "2026-11-19T05:38:06.780Z",
+      "agent": "설계 담당",
+      "text": "🔎 SAP 조회: SearchObject Z*MM* TTYP false 200"
+    },
+    {
+      "at": "2026-11-19T05:38:07.326Z",
+      "agent": "설계 담당",
+      "text": "🔎 SAP 조회: SearchObject ZFGMM39* false"
+    },
+    {
+      "at": "2026-11-19T05:38:07.719Z",
+      "agent": "설계 담당",
+      "text": "🔎 SAP 조회: SearchObject SAPLZFGMM34 false"
+    },
+    {
+      "at": "2026-11-19T05:38:21.360Z",
+      "agent": "설계 담당",
+      "text": "🔎 SAP 조회: SearchObject ZFGMM7* false"
+    },
+    {
+      "at": "2026-11-19T05:38:21.922Z",
+      "agent": "설계 담당",
+      "text": "🔎 SAP 조회: SearchObject ZTTMM* false"
+    },
+    {
+      "at": "2026-11-19T05:38:22.663Z",
+      "agent": "설계 담당",
+      "text": "🔎 SAP 조회: SearchObject Z_MM_MP_SELECT_MATNR_DATA false full"
+    },
+    {
+      "at": "2026-11-19T05:38:23.313Z",
+      "agent": "설계 담당",
+      "text": "🔎 SAP 조회: SearchObject Z_MD_MIGMAT_LIST_GET false full"
+    },
+    {
+      "at": "2026-11-19T05:38:30.344Z",
+      "agent": "설계 담당",
+      "text": "🔎 SAP 조회: GetProgram LZFGMM25UXX"
+    },
+    {
+      "at": "2026-11-19T05:38:30.641Z",
+      "agent": "설계 담당",
+      "text": "🔎 SAP 조회: GetProgram LZFGMD98UXX"
+    },
+    {
+      "at": "2026-11-19T05:38:35.893Z",
+      "agent": "설계 담당",
+      "text": "🔎 SAP 조회: GetProgram SAPLZFGMM25"
+    },
+    {
+      "at": "2026-11-19T05:39:42.828Z",
+      "agent": "설계 담당",
+      "text": "🔎 SAP 조회: SearchObject XFELD false"
+    },
+    {
+      "at": "2026-11-19T05:39:44.139Z",
+      "agent": "설계 담당",
+      "text": "🔎 SAP 조회: SearchObject INT4 false"
+    },
+    {
+      "at": "2026-11-19T05:39:44.361Z",
+      "agent": "설계 담당",
+      "text": "🔎 SAP 조회: SearchObject ZCL_MM_MTART* false"
+    },
+    {
+      "at": "2026-11-19T05:39:44.546Z",
+      "agent": "설계 담당",
+      "text": "🔎 SAP 조회: SearchObject CL_ABAP_MATH false"
+    },
+    {
+      "at": "2026-11-19T05:44:20.380Z",
+      "agent": "설계 담당",
+      "text": "✏️ 02_design.md 작성"
+    },
+    {
+      "at": "2026-11-19T05:45:01.085Z",
+      "agent": "PL",
+      "text": "📨 팀장님께 설계 담당 결과를 보고드립니다 (권고: 승인) — 설계서(02_design.md)는 분석서대로 함수 Z_MM_GET_MATERIAL_LIST를 설계했습니다. 자재유형을 넣으면 자재코드·자재내역·기본단위 목록과 처리 결과 메시지를 돌려줍니다. 실제 처리는 별도 클래스(ZCL_MM_MTART_MATLIST)가 맡고, 함수는 이 클래스를 부르기만 합니다. 이렇게 나눈 덕분에 자동 단위 테스트 15건을 붙일 수 있습니다. 새로 만드는 이름 6개는 모두 시스템에서 겹치는 것이 없는지 확인했습니다. 요청에 없던 기능은 [추가]로 표시했습니다. 그중 '삭제 표시 자재 기본 제외'는 현업 답에 따라 무엇이 바뀌는지 표로 정리해 두었습니다. 개발 단계는 이 설계서로 바로 진행할 수 있습니다. 다만 보드의 개발계 반영 기능은 클래스만 올릴 수 있습니다(반영 코드에서 확인함). 함수·함수 그룹·결과 구조·메시지는 SE11/SE37/SE91에서 사람이 직접 만들어야 하므로, 누가 어떤 순서로 만들지 미리 정해 주셔야 합니다."
+    },
+    {
+      "at": "2026-11-19T05:46:12.243Z",
+      "agent": "팀장",
+      "text": "✅ 설계 담당 결과를 승인했습니다."
+    },
+    {
+      "at": "2026-11-19T05:46:12.249Z",
+      "agent": "PL",
+      "text": "개발 담당 작업 차례입니다. Claude Code에서 진행합니다."
+    },
+    {
+      "at": "2026-11-19T05:46:12.267Z",
+      "agent": "개발 담당",
+      "text": "작업을 시작합니다."
+    },
+    {
+      "at": "2026-11-19T05:46:12.276Z",
+      "agent": "PL",
+      "text": "sap-developer 에이전트에게 작업을 지시했습니다."
+    },
+    {
+      "at": "2026-11-19T05:47:03.482Z",
+      "agent": "개발 담당",
+      "text": "🔎 SAP 조회: SearchObject ACTIV_AUTH false"
+    },
+    {
+      "at": "2026-11-19T05:47:04.035Z",
+      "agent": "개발 담당",
+      "text": "🔎 SAP 조회: SearchObject BAPI_MTYPE false"
+    },
+    {
+      "at": "2026-11-19T05:47:04.678Z",
+      "agent": "개발 담당",
+      "text": "🔎 SAP 조회: SearchObject SYMSG* false DTEL"
+    },
+    {
+      "at": "2026-11-19T05:47:05.128Z",
+      "agent": "개발 담당",
+      "text": "🔎 SAP 조회: SearchObject ZCL_MM_MTART* false"
+    },
+    {
+      "at": "2026-11-19T05:47:13.049Z",
+      "agent": "개발 담당",
+      "text": "🔎 SAP 조회: SearchObject ZSMM36* false"
+    },
+    {
+      "at": "2026-11-19T05:47:13.580Z",
+      "agent": "개발 담당",
+      "text": "🔎 SAP 조회: SearchObject ZTTMM* false"
+    },
+    {
+      "at": "2026-11-19T05:47:14.085Z",
+      "agent": "개발 담당",
+      "text": "🔎 SAP 조회: SearchObject ZMMM3 false"
+    },
+    {
+      "at": "2026-11-19T05:47:14.634Z",
+      "agent": "개발 담당",
+      "text": "🔎 SAP 조회: SearchObject ZFGMM71 false"
+    },
+    {
+      "at": "2026-11-19T05:47:15.201Z",
+      "agent": "개발 담당",
+      "text": "🔎 SAP 조회: SearchObject Z_MM_GET_MATERIAL_LIST false"
+    },
+    {
+      "at": "2026-11-19T05:47:15.585Z",
+      "agent": "개발 담당",
+      "text": "🔎 SAP 조회: SearchObject M_MATE_MAR false"
+    },
+    {
+      "at": "2026-11-19T05:47:21.732Z",
+      "agent": "개발 담당",
+      "text": "🔎 SAP 조회: GetClass CL_ABAP_MATH 60"
+    },
+    {
+      "at": "2026-11-19T05:47:22.258Z",
+      "agent": "개발 담당",
+      "text": "🔎 SAP 조회: SearchObject BAPIRET2 false"
+    },
+    {
+      "at": "2026-11-19T05:47:22.791Z",
+      "agent": "개발 담당",
+      "text": "🔎 SAP 조회: SearchObject XFELD false"
+    },
+    {
+      "at": "2026-11-19T05:47:23.301Z",
+      "agent": "개발 담당",
+      "text": "🔎 SAP 조회: SearchObject ABAP false TYPE"
+    },
+    {
+      "at": "2026-11-19T05:47:29.478Z",
+      "agent": "개발 담당",
+      "text": "🔎 SAP 조회: GetClass ZCL_MM_MATERIAL_LIST 120"
+    },
+    {
+      "at": "2026-11-19T05:47:31.923Z",
+      "agent": "개발 담당",
+      "text": "🔎 SAP 조회: GetClass ZCL_MM_MATERIAL_LIST"
+    },
+    {
+      "at": "2026-11-19T05:49:18.383Z",
+      "agent": "개발 담당",
+      "text": "✏️ src/ZCL_MM_MTART_MATLIST.abap 작성"
+    },
+    {
+      "at": "2026-11-19T05:49:29.863Z",
+      "agent": "개발 담당",
+      "text": "✏️ manual/Z_MM_GET_MATERIAL_LIST.fm.abap 작성"
+    },
+    {
+      "at": "2026-11-19T05:51:33.237Z",
+      "agent": "개발 담당",
+      "text": "✏️ 03_development.md 작성"
+    },
+    {
+      "at": "2026-11-19T05:51:38.875Z",
+      "agent": "개발 담당",
+      "text": "✏️ 03_development.md 수정"
+    },
+    {
+      "at": "2026-11-19T05:51:40.126Z",
+      "agent": "개발 담당",
+      "text": "✏️ 03_development.md 수정"
+    },
+    {
+      "at": "2026-11-19T05:52:15.478Z",
+      "agent": "PL",
+      "text": "📨 팀장님께 개발 담당 결과를 보고드립니다 (권고: 승인) — 개발 담당이 설계서대로 실제 처리 로직 클래스(ZCL_MM_MTART_MATLIST)와 함수(Z_MM_GET_MATERIAL_LIST)의 소스, 개발 결과서(03_development.md)를 만들었습니다. 자재유형을 넣으면 자재코드·자재내역·기본단위 목록과 결과 메시지를 돌려줍니다. 소스를 직접 읽어 보니 처리 순서(입력 확인 → 자재유형 확인 → 권한 확인 → 자재 조회 → 내역 붙이기)와 이 시스템 버전에서 쓰면 안 되는 문법 제한을 모두 지켰고, 설계와 다른 점 9건은 모두 동작이 같고 이유도 적혀 있습니다. 다만 SAP에 실제로 올려 문법 검사·활성화한 것은 아니므로 반영 때 처음 확인됩니다. 결과 구조·메시지·함수 그룹·함수는 사람이 SE11/SE91/SE37에서 직접 만들어야 하고, 특히 결과 구조(ZSMM3600/ZTTMM3600)를 먼저 만들지 않으면 클래스 반영이 실패하니 순서를 지켜 주셔야 합니다."
+    }
+  ],
+  "createdAt": "2026-11-19T05:11:53.663Z",
+  "updatedAt": "2026-11-19T05:52:15.478Z"
+}

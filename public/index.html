@@ -5,12 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>SAP 개발팀</title>
   <link rel="stylesheet" href="style.css" />
+  <script>
+    // 저장된 화면 테마를 그리기 전에 적용 (깜빡임 방지)
+    (function () { var t = "light"; try { t = localStorage.getItem("devsap-theme") || "light"; } catch (e) {} document.documentElement.dataset.theme = t; })();
+  </script>
 </head>
 <body>
   <header>
     <div class="row"><h1>SAP 개발팀</h1>
-      <nav><a href="#/" id="navBoard">개발 요청</a><a href="#/wiki" id="navWiki">📚 지식 위키</a><a href="#/standards" id="navStd">📏 개발표준</a><a href="#/trash" id="navTrash">🗑 휴지통</a></nav></div>
-    <div id="env"></div>
+      <nav><a href="#/" id="navBoard">개발 요청</a><a href="#/office" id="navOffice">🏢 에이전트 오피스</a><a href="#/wiki" id="navWiki">📚 지식 위키</a><a href="#/standards" id="navStd">📏 개발표준</a><a href="#/trash" id="navTrash">🗑 휴지통</a></nav></div>
+    <div class="row" style="gap:10px"><div id="env"></div>
+      <label class="theme-pick sub" style="margin:0" title="화면 테마">🎨<select id="themePick">
+        <option value="system">시스템 설정</option><option value="light">라이트</option><option value="dark">다크</option>
+        <option value="navy">네이비</option><option value="sepia">세피아</option><option value="green">그린</option>
+      </select></label></div>
   </header>
   <main id="board">
     <aside>
@@ -31,6 +39,9 @@
   </main>
   <main id="standards" class="standards" hidden>
     <section id="stdBody"></section>
+  </main>
+  <main id="office" class="standards" hidden>
+    <section id="officeBody"></section>
   </main>
   <main id="trash" class="standards" hidden>
     <section id="trashBody"></section>
@@ -62,6 +73,7 @@
   <script src="stagepptx.js"></script>
   <script src="testresult.js"></script>
   <script src="trash.js"></script>
+  <script src="office.js"></script>
   <script src="wiki.js"></script>
 </body>
 </html>
