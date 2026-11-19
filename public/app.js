@@ -18,6 +18,7 @@ let pendingDeck = null; // 요약을 요청한 보고용 PPT (`${id}:${단계}`)
 async function api(path, opts = {}) {
   const res = await fetch(path, { headers: { "Content-Type": "application/json" }, ...opts, body: opts.body && JSON.stringify(opts.body) });
   const data = await res.json().catch(() => ({}));
+  if (res.status === 401) { location.href = "/login"; throw new Error("로그인이 필요합니다."); }
   if (!res.ok) throw new Error(data.error || res.statusText);
   return data;
 }
@@ -36,6 +37,7 @@ function pastedImages(e) {
 async function upload(id, file, cr) {
   const res = await fetch(`/api/tickets/${id}${cr ? `/changes/${cr}` : ""}/attachments?name=${encodeURIComponent(file.name)}`, { method: "POST", headers: { "Content-Type": "application/octet-stream" }, body: file });
   const data = await res.json().catch(() => ({}));
+  if (res.status === 401) { location.href = "/login"; throw new Error("로그인이 필요합니다."); }
   if (!res.ok) throw new Error(data.error || (res.status === 413 ? "파일이 너무 큽니다." : res.statusText));
   return data;
 }
@@ -46,6 +48,7 @@ const fmtSize = (n) => n < 1024 ? `${n}B` : n < 1048576 ? `${(n / 1024).toFixed(
 
 async function loadStatus() {
   status = await api("/api/status");
+  $("#logoutBtn").hidden = !status.auth;
   $("#env").innerHTML = `
     <span class="pill on">작업: Claude Code 서브에이전트</span>
     ${status.systems.length ? `<label class="pill ${status.sap ? "on" : "off"}" title="새 요청의 기본 대상 시스템, 접속 테스트 대상 (요청별 시스템은 등록할 때 고릅니다)">기본 SAP
@@ -676,3 +679,8 @@ $("#newDlg").addEventListener("close", async () => {
     try { localStorage.setItem("devsap-theme", pick.value); } catch {}
   });
 })();
+
+$("#logoutBtn").addEventListener("click", async () => {
+  await fetch("/logout", { method: "POST" });
+  location.href = "/login";
+});

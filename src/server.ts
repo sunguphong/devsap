@@ -1,6 +1,7 @@
 import express from "express";
 import type { NextFunction, Request, Response } from "express";
 import { AdtClient } from "./adt.ts";
+import { authEnabled, loginRoutes, requireLogin } from "./auth.ts";
 import { attachmentPath, checkGoogleSheet, deleteAttachment, importGoogleSheet, listAttachments, MAX_SIZE, saveAttachment } from "./attachments.ts";
 import { currentSystem, listSystems, resolveSystem, sapConfig, selectSystem } from "./systems.ts";
 import { approveDeploy, approveStage, failStage, hooks, isBusy, recoverInterrupted, revise } from "./board.ts";
@@ -17,7 +18,11 @@ import { allPages, getPage, savePage, search } from "./wiki.ts";
 if (process.env.SAP_INSECURE_TLS === "1") process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
 const app = express();
+app.set("trust proxy", "loopback"); // Cloudflare Tunnel(cloudflared)이 같은 PC에서 넘겨 주는 https 정보를 믿는다
 app.use(express.json({ limit: "2mb" }));
+app.use(express.urlencoded({ extended: false, limit: "8kb" }));
+loginRoutes(app);
+app.use(requireLogin);
 app.use(express.static("public"));
 
 const wrap = (fn: (req: Request, res: Response) => unknown) => async (req: Request, res: Response, next: NextFunction) => {
@@ -30,7 +35,7 @@ const wrap = (fn: (req: Request, res: Response) => unknown) => async (req: Reque
 
 app.get("/api/status", (_req, res) => {
   const sap = sapConfig();
-  res.json({ team: TEAM, sap: sap ? { url: sap.url, client: sap.client, user: sap.user } : null, systems: listSystems(), system: currentSystem() });
+  res.json({ team: TEAM, sap: sap ? { url: sap.url, client: sap.client, user: sap.user } : null, systems: listSystems(), system: currentSystem(), auth: authEnabled() });
 });
 
 // 접속할 SAP 시스템(등록된 ABAP MCP 서버) 선택. 이후 시작하는 작업·검증·개발계 반영부터 적용된다
@@ -328,6 +333,7 @@ hooks.afterDeploy = (id) => {
 const port = Number(process.env.PORT || 3300);
 app.listen(port, () => {
   console.log(`SAP 개발 관리 보드: http://localhost:${port}`);
+  console.log(authEnabled() ? "로그인: 사용 (BOARD_PASSWORD)" : "로그인: 사용 안 함 — 외부에 열려면 .env 에 BOARD_PASSWORD 를 설정하세요");
   console.log(`SAP 시스템: ${currentSystem() ?? "(등록된 ABAP MCP 서버 없음 — .env 사용)"}`);
   if (!sapConfig()) console.log("SAP 접속 정보가 없어 개발계 반영은 시뮬레이션 모드로 동작합니다.");
 });
