@@ -600,8 +600,25 @@ $("#newBtn").addEventListener("click", async () => {
     ? status.systems.map((s) => `<option value="${esc(s.name)}" ${s.name === status.system ? "selected" : ""}>${esc(s.name)} · ${esc(s.url.replace(/^https?:\/\//, ""))} / 클라이언트 ${esc(s.client)}</option>`).join("")
     : `<option value="">(등록된 SAP 시스템 없음)</option>`;
   sel.disabled = !status?.systems?.length;
+  showNewSysRelease();
   $("#newDlg").showModal();
 });
+// 새 요청 창: 고른 대상 시스템의 SAP_BASIS 버전을 제목 위에 표시한다
+async function showNewSysRelease() {
+  const el = $("#newSysRel");
+  const name = $("#newSystem").value;
+  if (!name) { el.hidden = true; return; }
+  el.hidden = false;
+  el.className = "sysrel-line";
+  el.textContent = `대상 시스템 ${name} · SAP_BASIS 확인 중…`;
+  const r = await sysRelease(name);
+  if ($("#newSystem").value !== name) return; // 그 사이 다른 시스템을 골랐다
+  if (!r.value) { el.textContent = `대상 시스템 ${name} · SAP_BASIS 확인 불가`; el.title = r.error || ""; return; }
+  const old = isBelow750(r.value);
+  el.classList.toggle("old", old);
+  el.textContent = `설계 시 확인: 대상 시스템 ${name} · SAP_BASIS ${r.value.label}${old ? " — 7.50 미만이라 구조·테이블 타입은 SE11 수작업" : ""}`;
+}
+$("#newSystem").addEventListener("change", showNewSysRelease);
 // 구글시트 링크가 열리고 내용이 읽히는지 미리 확인한다 (저장하지 않음)
 $("#sheetCheck").addEventListener("click", async (e) => {
   const f = new FormData($("#newForm"));

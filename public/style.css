@@ -389,3 +389,8 @@ select option:checked { background-color: var(--accent-bg2); color: var(--text);
 #adminBody td.a-key { font-weight: 600; color: var(--text); white-space: nowrap; }
 #adminBody pre.mermaid { max-height: none; }
 @media (max-width: 1000px) { .a-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+/* 새 요청 창: 대상 시스템 SAP_BASIS 표시 (제목 위) */
+.sysrel-line { margin: -4px 0 12px; padding: 6px 10px; border-radius: 7px; font-size: 13px; font-weight: 700; color: var(--muted); background: var(--bg); border: 1px solid var(--line); }
+.sysrel-line.old { color: var(--warn); background: var(--warn-bg2); border-color: var(--warn); }
+.sysrel-line[hidden] { display: none; }
