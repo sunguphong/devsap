@@ -374,3 +374,7 @@ a.seat:hover { outline: 2px solid var(--accent); outline-offset: 1px; }
 .notice ul { margin: 6px 0 4px; padding-left: 18px; }
 .sysrel { font-variant-numeric: tabular-nums; }
 .sysrel.old { color: var(--warn); font-weight: 600; }
+
+/* 드롭다운 펼친 목록: 칸 배경이 투명(.pill .sys)이어도 항목은 테마 색으로 (다크에서 흰 바탕에 밝은 글자 방지) */
+select option, select optgroup { background-color: var(--panel); color: var(--text); }
+select option:checked { background-color: var(--accent-bg2); color: var(--text); }
