@@ -1,9 +1,9 @@
 # 03. 개발 결과서 - 자재 리스트 조회 펀션 신규 개발
 
 - 요청 ID: 20261119-f26e72
-- 작성: sap-developer (**개발 재작업 — 팀장 설계 수정 지시 "테이블이나 구조체 만들지 않고 할수 있는 방법으로 변경해줘" 반영된 02_design.md 기준**)
-- 작성일: 2026-11-19 (재작업)
-- 기준: `02_design.md`(재작업 승인본), `01_analysis.md`(승인), `request.md`. 이번 개발 단계에 대한 팀장 직접 수정 지시·첨부·반영된 CR 없음
+- 작성: sap-developer (**개발 재작업 2차 — 팀장 개발 수정 지시 "zmmm3 쓰지 말고 ZMM 메시지클래스를 이용해서 해줘" 반영**. 그 전 재작업: 팀장 설계 수정 지시 "테이블이나 구조체 만들지 않고 할수 있는 방법으로 변경해줘")
+- 작성일: 2026-11-19 (재작업 2차)
+- 기준: `02_design.md`(재작업 승인본), `01_analysis.md`(승인), `request.md`, 팀장 개발 수정 지시(메시지 클래스 ZMM 사용). 첨부·반영된 CR 없음
 - 개발표준: `standards/handbook.md` — 핸드북 규칙 없는 유형(클래스명, 메서드 파라미터 IV_/EV_/IT_/ET_/RV_/RT_/RS_, 타입 TY_/TT_, 객체 참조 LO_)은 핸드북 3장 적용 메모대로 **SAP 관례 적용**
 - 참고: `src/board.ts`(`runDeploy`, `toAdtFunctionSource`, `funcModules`, `msgClasses`), `src/adt.ts`(`createFunctionModule`)
 - 조회 시스템: mrd-abap-rw (클라이언트 350), `mcp__sap__SearchObject`·`GetClass` **읽기 조회만** 함. 시스템 쓰기(생성·활성화) 없음 → 구문 검사·활성화는 개발계 반영 때 처음 확인됨
@@ -14,6 +14,7 @@
 |---|---|---|---|
 | 1차 | 2026-11-19 | 최초 개발. 출력 타입 DDIC `ZSMM3600`/`ZTTMM3600`(SE11 수작업), FM Remote-Enabled, FM·FUGR·MSAG 수작업(`manual/`) | 1차 설계 |
 | 재작업 | 2026-11-19 | ① 클래스에 public `TY_LIST`/`TT_LIST` 추가, `execute`·`build_list`의 `et_list` 타입을 `zttmm3600` → `tt_list`. ② FM을 `src/Z_MM_GET_MATERIAL_LIST.fm.abap`+`.fm.json`(processingType `normal`)으로 이동, `ET_LIST TYPE ZCL_MM_MTART_MATLIST=>TT_LIST`. ③ `src/ZFGMM71.fugr.json`, `src/ZMMM3.msag.json` 신규 → 웹앱 자동 반영. ④ SE11·SE37·SE80·SE91 수작업 체크리스트 삭제 | **팀장 설계 수정 지시 — 구조체/테이블 타입 미생성**. 이전 개발계 반영에서 "Type ZTTMM3600 is unknown"으로 클래스 활성화 실패 |
+| 재작업 2차 | 2026-11-19 | ① 클래스 `C_MSGID` 'ZMMM3' → **'ZMM'**, 메시지 번호 상수 001~006 → **338~343**(의미·&1/&2 동일, 설계 7장 텍스트 그대로). ② `src/ZMM.msag.json` 신규(338~343만, 기존 번호 미포함). ③ `src/ZMMM3.msag.json`은 **삭제 대상**(PL 처리). ④ FM 헤더 주석·`decide_return` 주석의 메시지 표기 갱신. ⑤ 로직·시그니처 변경 없음 | **팀장 개발 수정 지시 — 메시지 클래스 ZMMM3 대신 기존 ZMM 사용** |
 
 ### 근거 표기
 
@@ -54,8 +55,8 @@ classDiagram
     +TY_LIST matnr maktx meins
     +TT_LIST
     +TT_MARA TT_MAKT TT_LVORM_RANGE
-    +c_msgid$
-    +c_msg_no_input to c_msg_trunc$
+    +c_msgid ZMM$
+    +c_msg_no_input 338 to c_msg_trunc 343$
     +c_msgty_error warning success$
     +c_actvt_display$
     -c_sign_exclude$
@@ -86,12 +87,17 @@ classDiagram
   class BAPIRET2 {
     <<DDIC structure standard>>
   }
+  class ZMM {
+    <<message class existing>>
+    +338 to 343
+  }
   CALLER --> Z_MM_GET_MATERIAL_LIST : CALL FUNCTION
   ZFGMM71 *-- Z_MM_GET_MATERIAL_LIST
   Z_MM_GET_MATERIAL_LIST --> ZCL_MM_MTART_MATLIST : CREATE OBJECT 후 execute
   Z_MM_GET_MATERIAL_LIST ..> ZCL_MM_MTART_MATLIST : ET_LIST TYPE tt_list
   ZCL_MM_MTART_MATLIST ..> CL_ABAP_MATH : get_up_to_rows
   ZCL_MM_MTART_MATLIST ..> BAPIRET2 : es_return
+  ZCL_MM_MTART_MATLIST ..> ZMM : make_return MESSAGE ID
 ```
 
 ### 2) 실행 순서도
@@ -107,30 +113,30 @@ sequenceDiagram
   CL->>CL: normalize_mtart normalize_spras normalize_max_rows
   FM->>CL: execute
   alt g_mtart 공란
-    CL-->>FM: make_return E ZMMM3 001
+    CL-->>FM: make_return E ZMM 338
   else 입력 있음
     CL->>DB: check_mtart SELECT SINGLE begru FROM t134
     alt T134 없음
-      CL-->>FM: make_return E ZMMM3 002
+      CL-->>FM: make_return E ZMM 339
     else T134 있음
       opt begru 있음
         CL->>CL: check_authority M_MATE_MAR ACTVT 03
         alt 권한 없음
-          CL-->>FM: make_return E ZMMM3 003
+          CL-->>FM: make_return E ZMM 340
         end
       end
       CL->>CL: build_lvorm_range get_up_to_rows
       CL->>DB: read_mara SELECT mara UP TO n ROWS ORDER BY matnr
       alt 0건
-        CL-->>FM: make_return W ZMMM3 004
+        CL-->>FM: make_return W ZMM 341
       else 1건 이상
         CL->>DB: read_makt SELECT makt FOR ALL ENTRIES
         CL->>CL: build_list 정렬 및 초과분 삭제
         CL->>CL: decide_return
         alt 잘림
-          CL-->>FM: W ZMMM3 006
+          CL-->>FM: W ZMM 343
         else 정상
-          CL-->>FM: S ZMMM3 005
+          CL-->>FM: S ZMM 342
         end
       end
     end
@@ -169,7 +175,8 @@ flowchart LR
 
 | No | 유형 | 오브젝트명 | 내역(60자 이내) | 신규/변경 | 산출물 (`work/20261119-f26e72/`) | 반영 방법 |
 |---|---|---|---|---|---|---|
-| O-05 | 메시지 클래스 (MSAG) | `ZMMM3` | [MM] 자재마스터 조회 공통 메시지 | 신규 | `src/ZMMM3.msag.json` (001~006) | 웹앱 자동 (R-1) |
+| O-05 | 메시지 클래스 (MSAG) | `ZMM` | MM Message Class (기존 내역 유지) | **변경(기존 공용, 번호 338~343 추가)** | `src/ZMM.msag.json` (338~343만) | 웹앱 자동 (R-1, 없는 번호만 추가) |
+| ~~O-05~~ | ~~메시지 클래스~~ | ~~`ZMMM3`~~ | — | **취소(재작업 2차)** | `src/ZMMM3.msag.json` → **삭제 대상** (PL 처리) | 만들지 않음 |
 | O-02 | 함수 그룹 (FUGR) | `ZFGMM71` | [MM] 자재마스터 조회 공통 | 신규 | `src/ZFGMM71.fugr.json` | 웹앱 자동 (R-2) |
 | O-04 | 클래스 (CLAS) | `ZCL_MM_MTART_MATLIST` | [MM] 자재유형별 자재 리스트 조회 로직 | 신규(시스템에 이미 생성됨 → 소스 갱신) | `src/ZCL_MM_MTART_MATLIST.abap` | 웹앱 자동 (R-3) |
 | — | 테스트 클래스 (CCAU) | `LTCL_MTART_MATLIST`, `LTD_MATDATA` | — | 테스트 단계 산출물 | `src/ZCL_MM_MTART_MATLIST.testclasses.abap` (**이번에 수정 안 함, 7장 필수 수정 있음**) | 웹앱 자동 (R-3, 클래스와 함께) |
@@ -179,14 +186,16 @@ flowchart LR
 
 - 패키지 `ZMMD`(재사용). 이송요청은 웹앱이 자동 생성하거나 보드 반영 설정의 번호 사용. `ZCL_MM_MTART_MATLIST`가 이전 반영 시도로 이미 어떤 이송요청에 잡혀 있을 수 있음(설계 C-08) → 반영 설정에서 같은 이송요청을 쓸지 팀장 확인.
 - **`manual/Z_MM_GET_MATERIAL_LIST.fm.abap`은 더 이상 쓰지 않습니다.** 1차 설계(`ZTTMM3600`·Remote-Enabled) 기준이라 내용도 낡았고 웹앱이 읽지 않는 위치입니다. 지시대로 파일은 지우지 않고 그대로 두었으며, 삭제 여부는 팀장 판단입니다. 유효한 FM 소스는 `src/Z_MM_GET_MATERIAL_LIST.fm.abap`뿐입니다.
-- `src/` 파일은 위 6개(`.msag.json`, `.fugr.json`, `.abap`, `.testclasses.abap`, `.fm.abap`, `.fm.json`)뿐입니다. 다른 `.abap`이 없어 웹앱이 PROG/INCL로 잘못 만들 대상이 없습니다.
+- **삭제 대상: `src/ZMMM3.msag.json`** — 팀장 지시로 ZMMM3를 쓰지 않습니다. 개발 에이전트에 파일 삭제 도구가 없어 내용은 그대로 두었습니다. **개발계 반영 전에 PL이 삭제**해야 합니다(남겨 두면 웹앱 R-1이 MSAG `ZMMM3`를 새로 만듦).
+- 삭제 후 `src/` 파일은 6개(`ZMM.msag.json`, `ZFGMM71.fugr.json`, `ZCL_MM_MTART_MATLIST.abap`, `.testclasses.abap`, `Z_MM_GET_MATERIAL_LIST.fm.abap`, `.fm.json`)입니다. 다른 `.abap`이 없어 웹앱이 PROG/INCL로 잘못 만들 대상이 없습니다.
+- 메시지 클래스 명명: 핸드북 규칙은 `ZM<모듈><1자리>`(예 `ZMPP1`)이나 `ZMM`은 **이미 있는 공용 메시지 클래스**이고 팀장이 직접 지정했으므로 그대로 사용합니다(신규 생성 아님).
 
 ### 1.1 시스템 재조회 (2026-11-19, 이번 세션) [확인]
 
 | 대상 | 결과 |
 |---|---|
 | `ZFGMM7*` (FUGR) | ZFGMM70만 존재 → **ZFGMM71 없음** |
-| `ZMMM*` (MSAG) | ZMMM, ZMMM1, ZMMM2만 존재 → **ZMMM3 없음** |
+| `ZMM` (MSAG) | 존재 — 내역 "MM Message Class", 패키지 `ZMMD` [확인, 재작업 2차]. 사용 중 번호(000~064, 077, 078, 101, 104, 116~127, 200~237, 240~276, 301~337)는 PL 확인 결과 기준 — 메시지 번호 조회 도구가 없어 이 세션에서 338~343 미사용을 직접 확인하지는 못함 |
 | `Z_MM_GET_MATERIAL*` | 0건 → **FM 없음** |
 | `ZCL_MM_MTART_MATLIST` 활성 버전 | 빈 껍데기(PUBLIC/PROTECTED/PRIVATE 섹션 비어 있음, 메서드 없음) → 활성 버전을 쓰는 다른 오브젝트 없음. 웹앱이 `exists` 분기로 소스 갱신 |
 
@@ -213,7 +222,8 @@ flowchart LR
 | `TY_LIST` (재작업 추가, PUBLIC) | `matnr TYPE matnr`, `maktx TYPE maktx`, `meins TYPE meins` — 설계 3.3과 같은 필드·순서·표준 DTEL |
 | `TT_LIST` (재작업 추가, PUBLIC) | `STANDARD TABLE OF ty_list WITH DEFAULT KEY` |
 | `execute` / `build_list` | `et_list TYPE tt_list` (기존 `zttmm3600` 두 곳만 변경). `build_list`의 `ls_list`는 `TYPE ty_list`로 명시 |
-| 그 외 메서드·상수·로직 | 1차 개발본과 동일 (설계 5장 2~9단계, 7장 메시지, 8장 권한 변경 없음) |
+| 메시지 상수 (재작업 2차) | `C_MSGID = 'ZMM'`, `C_MSG_NO_INPUT`~`C_MSG_TRUNC` = `'338'`~`'343'`. 상수 이름은 그대로라 호출부·테스트 클래스의 상수 참조는 수정 불필요 |
+| 그 외 메서드·상수·로직 | 1차 개발본과 동일 (설계 5장 2~9단계, 7장 메시지 의미, 8장 권한 변경 없음) |
 | 헤더 주석 | "RFC" 표기 삭제 → "일반 함수 모듈". `TY_LIST`/`TT_LIST` 변경 금지 주석 추가. `normalize_spras` 주석의 "RFC 로그온 언어" 문구 삭제 |
 
 | 메서드 | 가시성/정적 | 설계 시그니처 일치 | 설계 5장 단계 | FR | UT |
@@ -236,16 +246,19 @@ flowchart LR
 ### 2.3 함수 그룹·메시지 클래스
 
 - `ZFGMM71.fugr.json`: `{"description": "[MM] 자재마스터 조회 공통"}` (1차의 "(RFC)" 문구 삭제). TOP 전역 데이터 없음.
-- `ZMMM3.msag.json`: 설계 7장 001~006 텍스트 그대로, 전부 `selfExplanatory: true`, 원어는 로그온 언어(KO) 기준. 모두 73자 이내.
+- `ZMM.msag.json` (재작업 2차): 기존 메시지 클래스 `ZMM`의 빈 연속 구간 **338~343**에 설계 7장 001~006 텍스트를 그대로 배정. 전부 `selfExplanatory: true`, 원어 KO, 모두 73자 이내. `description`은 기존 내역 "MM Message Class"를 그대로 적음(이미 있는 클래스라 웹앱이 새로 만들지 않으므로 영향 없음). **기존 번호는 넣지 않음** → 웹앱이 338~343만 추가하고 기존 텍스트는 바꾸지 않음.
+- 기존 ZMM 000~337 메시지(예: 002 "데이터가 존재하지 않습니다.")는 자리표시자 형식(`&`)·의미가 설계 7장과 달라 재사용하지 않았습니다.
 
-| 번호 | 사용 유형 | 텍스트 | 클래스 상수 |
-|---|---|---|---|
-| 001 | E | 자재유형을 입력하십시오. | `C_MSG_NO_INPUT` |
-| 002 | E | 자재유형 &1 이(가) 존재하지 않습니다. | `C_MSG_INVALID` |
-| 003 | E | 자재유형 &1 에 대한 조회 권한이 없습니다. | `C_MSG_NO_AUTH` |
-| 004 | W | 자재유형 &1 에 해당하는 자재가 없습니다. | `C_MSG_NO_DATA` |
-| 005 | S | 자재유형 &1 자재 &2 건이 조회되었습니다. | `C_MSG_SUCCESS` |
-| 006 | W | 최대 &1 건까지만 반환했습니다. 조회 조건에 맞는 자재가 더 있습니다. | `C_MSG_TRUNC` |
+| 번호 (ZMM) | 설계 7장 번호 | 사용 유형 | 텍스트 | 클래스 상수 |
+|---|---|---|---|---|
+| 338 | 001 | E | 자재유형을 입력하십시오. | `C_MSG_NO_INPUT` |
+| 339 | 002 | E | 자재유형 &1 이(가) 존재하지 않습니다. (&1 자재유형) | `C_MSG_INVALID` |
+| 340 | 003 | E | 자재유형 &1 에 대한 조회 권한이 없습니다. (&1 자재유형) | `C_MSG_NO_AUTH` |
+| 341 | 004 | W | 자재유형 &1 에 해당하는 자재가 없습니다. (&1 자재유형) | `C_MSG_NO_DATA` |
+| 342 | 005 | S | 자재유형 &1 자재 &2 건이 조회되었습니다. (&1 자재유형, &2 건수) | `C_MSG_SUCCESS` |
+| 343 | 006 | W | 최대 &1 건까지만 반환했습니다. 조회 조건에 맞는 자재가 더 있습니다. (&1 최대건수) | `C_MSG_TRUNC` |
+
+(괄호 안 자리표시자 설명은 표 설명용이며 실제 텍스트에는 없음.)
 
 ### 2.4 호출측 사용 예 (FM 문서 대용)
 
@@ -281,7 +294,7 @@ CALL FUNCTION 'Z_MM_GET_MATERIAL_LIST'
 | 순서 | 대상 | 웹앱 동작 | 이 요청의 의존 관계 | 판단 |
 |---|---|---|---|---|
 | R-0 | 이송요청 | 없으면 자동 생성 (`objs[0]` = 클래스 URI 기준) | — | OK. C-08 확인 |
-| R-1 | MSAG `ZMMM3` | 없으면 신규 생성. 실패해도 경고만 남기고 계속 | 클래스는 메시지 ID를 상수 문자열로만 써 활성화 의존 없음 | OK. 실패 경고가 나오면 SE91 등록 |
+| R-1 | MSAG `ZMM` (기존) | 이미 있음 → 새로 만들지 않고 없는 번호 338~343만 추가. 실패해도 경고만 남기고 계속 | 클래스는 메시지 ID를 상수 문자열로만 써 활성화 의존 없음 | OK. 실패 경고가 나오면 SE91 등록. `ZMMM3.msag.json`이 남아 있으면 ZMMM3가 생기므로 반영 전 삭제 필수 |
 | R-2 | FUGR `ZFGMM71` | 없으면 생성 | FM보다 먼저 있어야 함 | OK |
 | R-3 | CLAS `ZCL_MM_MTART_MATLIST` + testclasses | 이미 있음 → main·testclasses 소스 갱신(비활성 저장) | FM이 `TT_LIST`를 참조하므로 FM보다 먼저 | OK (웹앱 순서와 일치) |
 | R-4 | FUNC `Z_MM_GET_MATERIAL_LIST` | 생성(processingType normal) → 소스 저장 | 비활성 클래스의 `TT_LIST` 참조 | 대체로 OK — 아래 주의 1 |
@@ -320,6 +333,7 @@ CALL FUNCTION 'Z_MM_GET_MATERIAL_LIST'
 | X-06 | 8단계 `COND #( )` 예시 | IF/ENDIF, 행마다 `CLEAR ls_list` | 동작 동일 (1차 유지) | 없음 |
 | X-07 | 권한 객체·필드명 | `'M_MATE_MAR'`/`'ACTVT'`/`'BEGRU'` 리터럴 유지, 값만 상수 | SAP 관례(SLIN·사용처 조회) (1차 유지) | 없음 |
 | X-08 | 5장 1단계 FM 예시 `CREATE OBJECT ... (또는 NEW #)` | `CREATE OBJECT` 사용 | 설계가 허용한 두 형태 중 7.40 호환이 확실한 쪽 | 없음 |
+| X-09 | 7장 메시지 클래스 신규 `ZMMM3` 001~006 | 기존 메시지 클래스 **`ZMM` 338~343** (텍스트·유형·&1/&2 의미 동일) | **팀장 개발 수정 지시** (재작업 2차) | 호출측이 `ES_RETURN-ID/NUMBER`로 분기한다면 ZMM/338~343 기준. 02_design.md 7장은 설계 단계에서 갱신 필요(개발은 지시대로 선반영) |
 
 - 재작업 지시(구조체/테이블 타입 미생성, normal FM, 자동 반영 파일 형식)는 **설계와 다른 점 없이** 그대로 구현했습니다.
 - 예외 처리: 소스의 SELECT·MESSAGE INTO·AUTHORITY-CHECK는 잡을 수 있는 클래스 예외를 내지 않아 TRY/CATCH를 두지 않았고, 오류는 모두 `ES_RETURN`으로 반환합니다(설계 7장). 비RFC라 `SYSTEM_FAILURE`·`COMMUNICATION_FAILURE`는 해당 없음.
@@ -333,8 +347,8 @@ CALL FUNCTION 'Z_MM_GET_MATERIAL_LIST'
 | SE11 (구조·테이블 타입·데이터 요소·도메인·테이블) | **없음** — 신규 DDIC 0개 |
 | SE37 / SE80 / SE91 생성 | **없음** — FUNC·FUGR·MSAG 모두 웹앱 자동 반영 |
 | 화면(SE51)·GUI Status·T-code | 없음 |
-| 조건부 수작업 | ① R-1 결과에 "MSAG ZMMM3 반영 실패" 경고가 있으면 SE91에서 2.3 표대로 등록. ② 3.1 주의 1이 발생하면 클래스를 먼저 활성화 후 재반영. ③ 반영 후 SE37 속성 탭이 "일반 함수 모듈"인지 눈으로 확인(웹앱은 rfc일 때만 처리 유형을 재확인함, 설계 IT-11) |
-| 반영 전 선행 조건 | **테스트 클래스 파일 수정(7장 1번)** — 수작업이 아니라 테스트 단계 작업이지만 반영 전에 반드시 끝나야 함 |
+| 조건부 수작업 | ① R-1 결과에 "MSAG ZMM 반영 실패" 경고가 있으면 SE91에서 `ZMM` 338~343을 2.3 표대로 등록(그 사이 다른 개발자가 같은 번호를 썼으면 번호 재배정 후 개발 단계로 회신). ② 3.1 주의 1이 발생하면 클래스를 먼저 활성화 후 재반영. ③ 반영 후 SE37 속성 탭이 "일반 함수 모듈"인지 눈으로 확인(웹앱은 rfc일 때만 처리 유형을 재확인함, 설계 IT-11) |
+| 반영 전 선행 조건 | ① **테스트 클래스 파일 수정(7장 1번)** — 수작업이 아니라 테스트 단계 작업이지만 반영 전에 반드시 끝나야 함. ② **`src/ZMMM3.msag.json` 삭제**(PL) |
 
 ---
 
@@ -354,10 +368,14 @@ CALL FUNCTION 'Z_MM_GET_MATERIAL_LIST'
 
    - 필드명(`matnr`/`maktx`/`meins`)과 순서가 `ZSMM3600`과 같고 테이블 종류도 STANDARD·DEFAULT KEY로 같아서 `assert_equals( act = lt_list exp = lt_exp )` 비교 결과는 바뀌지 않습니다.
 2. **IT-11 (재작업 변경)**: SE37 속성 = 일반 함수 모듈, `ET_LIST` 참조 타입 = `ZCL_MM_MTART_MATLIST=>TT_LIST`. SE37 테스트 화면에서 ET_LIST 결과 표시가 안 되면 디버거 또는 2.4 예시로 만든 임시 호출 프로그램(로컬 `$TMP`, 반영 대상 아님)으로 확인. **AC-12(RFC 목적지 NONE)는 해당 없음**.
-3. **UT-13 make_return**: ZMMM3가 이번엔 웹앱으로 자동 생성되지만, MSAG 반영 실패 경고 가능성이 있으므로 계속 MESSAGE 텍스트는 비교하지 않는 것을 권장.
-4. **반영 순서**: 1차의 "R-2(SE11) → R-3 → R-4" 선행조건(04_test.md R-01, 9장 P-1)은 **없어졌습니다**. 대신 "테스트 클래스 수정(1번) 완료"가 반영 전 조건입니다. 04_test.md R-01·P-1 문구 갱신 필요.
-5. 권한 필드(C-03, SU21 M_MATE_MAR = ACTVT·BEGRU 확인 후 IT-12), MARA MTART 인덱스(IT-13 ST05)는 1차와 같습니다.
-6. 04_test.md의 결함·지시 중 개발 수정 대상은 없었습니다(04_test.md 4장 "소스 결함 없음").
+3. **[재작업 2차] 메시지 클래스 변경 반영** — `src/ZCL_MM_MTART_MATLIST.testclasses.abap`의 ZMMM3 기대값/번호를 **ZMM·새 번호(338~343)**로 바꿔야 합니다. 현재 테스트는 `c_msgid`·`c_msg_*` 상수를 기대값으로 쓰므로 판정은 자동으로 따라오지만, 아래 문구는 갱신 필요:
+   - 19줄 헤더 주석, 575줄 주석의 "ZMMM3" → "ZMM"
+   - 581줄 `msg = 'UT-13 ID ZMMM3'`, 623줄 `msg = 'UT-14 ID ZMMM3'` → `'... ID ZMM'`
+   - 04_test.md에 번호를 리터럴(001~006)로 적은 기대값이 있으면 338~343으로(001→338, 002→339, 003→340, 004→341, 005→342, 006→343)
+4. **UT-13 make_return**: ZMM 338~343도 웹앱이 추가하지만 반영 실패 경고 가능성이 있으므로 계속 MESSAGE 텍스트는 비교하지 않는 것을 권장.
+5. **반영 순서**: 1차의 "R-2(SE11) → R-3 → R-4" 선행조건(04_test.md R-01, 9장 P-1)은 **없어졌습니다**. 대신 "테스트 클래스 수정(1번) 완료"가 반영 전 조건입니다. 04_test.md R-01·P-1 문구 갱신 필요.
+6. 권한 필드(C-03, SU21 M_MATE_MAR = ACTVT·BEGRU 확인 후 IT-12), MARA MTART 인덱스(IT-13 ST05)는 1차와 같습니다.
+7. 04_test.md의 결함·지시 중 개발 수정 대상은 없었습니다(04_test.md 4장 "소스 결함 없음").
 
 ---
 
@@ -371,7 +389,7 @@ CALL FUNCTION 'Z_MM_GET_MATERIAL_LIST'
 | Q4 내역 대체 언어 | SY-LANGU, 없으면 공란 | `read_makt`, `tt_makt` 키 |
 | Q5 표시 형식 | 내부 형식 | `build_list`에 CONVERSION_EXIT_*_OUTPUT |
 | Q6 최대 건수 | 기본 0 | FM 기본값 |
-| Q7 메시지 다국어 | ZMMM3 KO | SE63 번역 |
+| Q7 메시지 다국어 | ZMM 338~343 KO | SE63 번역 |
 | Q8 권한 운영 | BEGRU 있을 때만 | `execute` 5단계 블록 |
 | Q9 함수 그룹 | ZFGMM71 | `.fm.json` group만 변경 |
 | Q11 출력 항목 추가 | 3개 | 클래스 `TY_LIST` **맨 뒤에** 필드 추가 + `ty_mara`/`read_mara`/`build_list` (DDIC 변경 없음) |
@@ -388,3 +406,5 @@ CALL FUNCTION 'Z_MM_GET_MATERIAL_LIST'
 | K-4 | 일반 FM의 클래스 타입 참조는 표준 지식 기준 | R-5 활성화로 확인(설계 C-09). 실패 시 결과 메시지를 개발 단계로 |
 | K-5 | M_MATE_MAR 필드명 미확인(C-03), MARA MTART 인덱스 미확인(C-02) | SU21, ST05 |
 | K-6 | 대상 릴리스 정확한 SP 미확인(C-06) | 소스는 7.40 SP05 이상이면 됨 |
+| K-7 | ZMM은 공용 메시지 클래스라 반영 전 다른 개발자가 338~343을 먼저 쓰면 웹앱은 기존 텍스트를 유지하고 넘어감 → 다른 텍스트가 표시됨 | 반영 직전 SE91 `ZMM` 338~343 미사용 확인. 사용 중이면 다른 빈 구간으로 상수·json 재배정 |
+| K-8 | `src/ZMMM3.msag.json` 미삭제 시 쓰지 않는 MSAG `ZMMM3`가 생성됨 | 반영 전 PL 삭제 |

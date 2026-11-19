@@ -49,14 +49,14 @@ CLASS zcl_mm_mtart_matlist DEFINITION
     TYPES:
       tt_lvorm_range TYPE RANGE OF mara-lvorm.
 
-    "메시지 클래스와 번호 (ZMMM3)
-    CONSTANTS c_msgid          TYPE symsgid VALUE 'ZMMM3'.
-    CONSTANTS c_msg_no_input   TYPE symsgno VALUE '001'.
-    CONSTANTS c_msg_invalid    TYPE symsgno VALUE '002'.
-    CONSTANTS c_msg_no_auth    TYPE symsgno VALUE '003'.
-    CONSTANTS c_msg_no_data    TYPE symsgno VALUE '004'.
-    CONSTANTS c_msg_success    TYPE symsgno VALUE '005'.
-    CONSTANTS c_msg_trunc      TYPE symsgno VALUE '006'.
+    "메시지 클래스와 번호 (기존 공용 메시지 클래스 ZMM, 338~343 신규 배정)
+    CONSTANTS c_msgid          TYPE symsgid VALUE 'ZMM'.
+    CONSTANTS c_msg_no_input   TYPE symsgno VALUE '338'.
+    CONSTANTS c_msg_invalid    TYPE symsgno VALUE '339'.
+    CONSTANTS c_msg_no_auth    TYPE symsgno VALUE '340'.
+    CONSTANTS c_msg_no_data    TYPE symsgno VALUE '341'.
+    CONSTANTS c_msg_success    TYPE symsgno VALUE '342'.
+    CONSTANTS c_msg_trunc      TYPE symsgno VALUE '343'.
     "메시지 유형
     CONSTANTS c_msgty_error    TYPE bapi_mtype VALUE 'E'.
     CONSTANTS c_msgty_warning  TYPE bapi_mtype VALUE 'W'.
@@ -361,7 +361,8 @@ CLASS zcl_mm_mtart_matlist IMPLEMENTATION.
 
   METHOD decide_return.
 *----------------------------------------------------------------------*
-* 잘림 -> W 006(&1 최대건수) / 그 외 -> S 005(&1 자재유형, &2 건수)
+* 잘림 -> W ZMM-343(&1 최대건수)
+* 그 외 -> S ZMM-342(&1 자재유형, &2 건수)
 *----------------------------------------------------------------------*
     DATA l_count TYPE symsgv.
     DATA l_max   TYPE symsgv.

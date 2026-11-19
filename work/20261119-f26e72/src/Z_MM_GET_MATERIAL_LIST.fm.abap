@@ -20,11 +20,12 @@ FUNCTION z_mm_get_material_list.
 * 비고      : 로직은 ZCL_MM_MTART_MATLIST 에 있음. 이 FM은 호출만 함.
 *             호출측 수신 변수 선언:
 *               DATA lt_list TYPE zcl_mm_mtart_matlist=>tt_list.
-*             IV_MTART 는 필수. 공란 값이면 E ZMMM3-001.
+*             IV_MTART 는 필수. 공란 값이면 E ZMM-338.
 *             IV_WITH_DELETED 공란 = 삭제 표시 자재 제외, 'X' = 포함.
 *             IV_MAX_ROWS 0 이하 = 제한 없음.
-*             ES_RETURN: S 005 정상 / W 004 데이터 없음 / W 006 잘림
-*                        E 001 입력 누락 / E 002 자재유형 없음 / E 003 권한 없음
+*             ES_RETURN (메시지 클래스 ZMM):
+*               S 342 정상 / W 341 데이터 없음 / W 343 잘림
+*               E 338 입력 누락 / E 339 자재유형 없음 / E 340 권한 없음
 *----------------------------------------------------------------------*
   DATA lo_list TYPE REF TO zcl_mm_mtart_matlist.
 

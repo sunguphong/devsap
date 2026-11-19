@@ -1,8 +1,8 @@
 {
   "id": "20261119-f26e72",
   "title": "자재 리스트 조회 펀션 신규 개발",
-  "status": "awaiting_review",
-  "currentStage": "development",
+  "status": "in_progress",
+  "currentStage": "test",
   "stages": {
     "analysis": {
       "status": "approved",
@@ -106,44 +106,49 @@
       "endedAt": "2026-11-19T06:41:51.576Z"
     },
     "development": {
-      "status": "review",
+      "status": "approved",
       "review": {
         "decision": "approve",
         "send_back_to": "development",
         "feedback": "",
-        "summary": "팀장님의 \"테이블·구조체를 만들지 않는 방식\" 지시에 맞춰 바뀐 설계서대로 개발 산출물을 다시 만들었습니다. 결과 목록 형식(자재코드·자재내역·기본단위)은 이제 클래스 ZCL_MM_MTART_MATLIST 안에 정의되어 있습니다. 소스를 직접 읽어 보니 클래스와 함수 Z_MM_GET_MATERIAL_LIST 어디에도 이전에 반영을 실패하게 만든 구조체(ZSMM3600/ZTTMM3600) 참조가 남아 있지 않습니다. 함수·함수 그룹(ZFGMM71)·메시지(ZMMM3)도 보드가 자동으로 반영할 수 있는 형식으로 만들었기 때문에 SE11 같은 수작업은 없습니다. 함수는 외부 시스템 호출(RFC)을 빼고 일반 함수로 만들었습니다. 다만 처음 테스트 단계에서 만든 자동 테스트 파일에는 아직 옛 구조체 이름이 남아 있습니다. 개발계 반영 전에 테스트 단계에서 이 부분을 꼭 고쳐야 하며, 고칠 곳은 개발 결과서(03_development.md) 7장에 줄 번호로 정리해 두었습니다. 문법 검사와 활성화는 실제 반영할 때 처음 확인됩니다. 예전 수작업용 함수 파일(manual/ 폴더)은 이제 쓰지 않지만 삭제하지 않고 남겨 두었으니, 지울지는 팀장님이 정해 주시면 됩니다."
+        "summary": "팀장님 지시대로 ZMMM3 대신 기존 메시지 클래스 ZMM을 쓰도록 바꿨습니다. 오류·안내 메시지 6개는 ZMM에서 비어 있는 번호인 338~343번에 새로 넣습니다. 개발계에서 ZMM을 직접 조회해 337번까지만 쓰이고 있음을 확인했고, 개발계에 반영할 때 기존 메시지는 바꾸지 않고 이 6개만 추가됩니다. 프로그램 로직과 입출력 항목은 그대로입니다. 쓰지 않게 된 ZMMM3 정의 파일은 삭제하지 않고 이름만 ZMMM3.msag.json.unused로 바꿔 개발계 반영에서 빠지게 했습니다(되돌릴 수 있음). 남은 일은 두 가지입니다. 테스트 소스에 남은 ZMMM3 표기 4곳은 다음 테스트 단계에서 고칩니다. 설계서 7장에는 아직 예전 메시지 번호가 남아 있지만, 이 차이는 개발 문서(03_development.md)에 기록해 두었습니다."
       },
-      "attempts": 2,
+      "attempts": 3,
       "directive": null,
-      "directives": [],
+      "directives": [
+        {
+          "at": "2026-11-19T07:13:19.972Z",
+          "text": "zmmm3 쓰지밀고 Zmm 메시지클래스를 이용해서 해줘"
+        }
+      ],
       "startedAt": "2026-11-19T06:41:51.595Z",
-      "endedAt": null
+      "endedAt": "2026-11-19T07:19:46.741Z"
     },
     "test": {
-      "status": "pending",
+      "status": "running",
       "review": {
         "decision": "approve",
         "send_back_to": "test",
         "feedback": "",
-        "summary": "테스트 담당이 테스트 결과서(04_test.md)와 자동 단위 테스트 소스(src/ZCL_MM_MTART_MATLIST.testclasses.abap)를 만들었습니다. 판정은 '조건부 합격'으로, 코드를 고쳐야 할 결함은 없습니다. 자동 테스트 17개는 입력값 정리, 정렬, 최대 건수 자르기, 결과 메시지를 확인하고, DB를 읽는 부분은 SE37에서 사람이 돌릴 통합 테스트 17개로 정리했습니다. 분석서의 합격 기준 14개도 모두 테스트와 연결했습니다. 제가 소스를 직접 읽어 보니 이 시스템 버전에서 막힌 문법은 쓰지 않았고 개발 단계의 전달 사항도 모두 반영됐습니다. 다만 SAP에서 실제로 돌려 본 것이 아니라 소스를 읽고 판단한 결과입니다. 결과 구조(ZSMM3600/ZTTMM3600)와 메시지(ZMMM3)는 이번 조회에서도 시스템에 아직 없었습니다. 그래서 개발계 반영 버튼을 누르기 전에 SE11/SE91에서 이것들을 먼저 만들어야 하고, 권한 객체 M_MATE_MAR의 필드 구성은 SU21에서 확인해야 합니다."
+        "summary": "테스트 담당이 바뀐 설계·개발 내용에 맞춰 테스트 문서(04_test.md)와 자동 테스트 코드(ABAP Unit 18건)를 다시 만들었습니다. 이전 테스트 코드는 설계 변경으로 없어진 구조체(ZSMM3600/ZTTMM3600)를 계속 쓰고 있어서 그대로 반영했다면 개발계 활성화가 실패했을 것입니다. 이번에 클래스 안에 정의한 결과 형식으로 바꿔 이 문제를 해결했고, 결과 형식(자재코드·자재내역·기본단위)이 바뀌지 않았는지 확인하는 테스트도 1건 새로 넣었습니다. 개발 소스에서 고쳐야 할 결함은 없습니다. 판정은 '조건부 합격'으로, 개발계 반영 때 활성화와 ABAP Unit이 성공하고 SE37 화면에서 결과가 보이는지 확인해야 합니다. 시스템에 예전 클래스의 비활성 버전이 남아 있으니 반영 결과에서 클래스 본문과 테스트 코드가 모두 '갱신'으로 나오는지 함께 확인해 주세요."
       },
-      "attempts": 1,
+      "attempts": 3,
       "directive": null,
       "directives": [],
-      "startedAt": null,
+      "startedAt": "2026-11-19T07:19:46.755Z",
       "endedAt": null
     },
     "deploy": {
       "status": "pending",
       "review": null,
-      "attempts": 2,
+      "attempts": 3,
       "directive": null,
       "directives": [],
       "startedAt": null,
       "endedAt": null
     }
   },
-  "revisionCount": 1,
+  "revisionCount": 2,
   "deployConfig": {
     "package": "ZMMD",
     "transport": "MRDK913275"
@@ -1195,8 +1200,398 @@
       "at": "2026-11-19T06:47:19.033Z",
       "agent": "PL",
       "text": "📨 팀장님께 개발 담당 결과를 보고드립니다 (권고: 승인) — 팀장님의 \"테이블·구조체를 만들지 않는 방식\" 지시에 맞춰 바뀐 설계서대로 개발 산출물을 다시 만들었습니다. 결과 목록 형식(자재코드·자재내역·기본단위)은 이제 클래스 ZCL_MM_MTART_MATLIST 안에 정의되어 있습니다. 소스를 직접 읽어 보니 클래스와 함수 Z_MM_GET_MATERIAL_LIST 어디에도 이전에 반영을 실패하게 만든 구조체(ZSMM3600/ZTTMM3600) 참조가 남아 있지 않습니다. 함수·함수 그룹(ZFGMM71)·메시지(ZMMM3)도 보드가 자동으로 반영할 수 있는 형식으로 만들었기 때문에 SE11 같은 수작업은 없습니다. 함수는 외부 시스템 호출(RFC)을 빼고 일반 함수로 만들었습니다. 다만 처음 테스트 단계에서 만든 자동 테스트 파일에는 아직 옛 구조체 이름이 남아 있습니다. 개발계 반영 전에 테스트 단계에서 이 부분을 꼭 고쳐야 하며, 고칠 곳은 개발 결과서(03_development.md) 7장에 줄 번호로 정리해 두었습니다. 문법 검사와 활성화는 실제 반영할 때 처음 확인됩니다. 예전 수작업용 함수 파일(manual/ 폴더)은 이제 쓰지 않지만 삭제하지 않고 남겨 두었으니, 지울지는 팀장님이 정해 주시면 됩니다."
+    },
+    {
+      "at": "2026-11-19T06:50:53.633Z",
+      "agent": "팀장",
+      "text": "✅ 개발 담당 결과를 승인했습니다."
+    },
+    {
+      "at": "2026-11-19T06:50:53.641Z",
+      "agent": "PL",
+      "text": "테스트 담당 작업 차례입니다. Claude Code에서 진행합니다."
+    },
+    {
+      "at": "2026-11-19T06:50:53.652Z",
+      "agent": "테스트 담당",
+      "text": "작업을 시작합니다."
+    },
+    {
+      "at": "2026-11-19T06:50:53.658Z",
+      "agent": "PL",
+      "text": "sap-tester 에이전트에게 작업을 지시했습니다."
+    },
+    {
+      "at": "2026-11-19T06:52:04.250Z",
+      "agent": "테스트 담당",
+      "text": "🔎 SAP 조회: SearchObject ZCL_MM_MTART_MATLIST false"
+    },
+    {
+      "at": "2026-11-19T06:52:04.950Z",
+      "agent": "테스트 담당",
+      "text": "🔎 SAP 조회: SearchObject ZFGMM7* FUGR false"
+    },
+    {
+      "at": "2026-11-19T06:52:05.827Z",
+      "agent": "테스트 담당",
+      "text": "🔎 SAP 조회: SearchObject ZMMM* MSAG false"
+    },
+    {
+      "at": "2026-11-19T06:52:06.059Z",
+      "agent": "테스트 담당",
+      "text": "🔎 SAP 조회: SearchObject Z_MM_GET_MATERIAL* false"
+    },
+    {
+      "at": "2026-11-19T06:52:10.920Z",
+      "agent": "테스트 담당",
+      "text": "🔎 SAP 조회: SearchObject ACTIV_AUTH false"
+    },
+    {
+      "at": "2026-11-19T06:52:11.456Z",
+      "agent": "테스트 담당",
+      "text": "🔎 SAP 조회: SearchObject BAPI_MTYPE false"
+    },
+    {
+      "at": "2026-11-19T06:52:12.108Z",
+      "agent": "테스트 담당",
+      "text": "🔎 SAP 조회: SearchObject SYMSG* DTEL false"
+    },
+    {
+      "at": "2026-11-19T06:52:12.652Z",
+      "agent": "테스트 담당",
+      "text": "🔎 SAP 조회: SearchObject SYSUBRC false"
+    },
+    {
+      "at": "2026-11-19T06:52:13.304Z",
+      "agent": "테스트 담당",
+      "text": "🔎 SAP 조회: GetClass ZCL_MM_MTART_MATLIST 1 20"
+    },
+    {
+      "at": "2026-11-19T06:54:51.940Z",
+      "agent": "테스트 담당",
+      "text": "✏️ src/ZCL_MM_MTART_MATLIST.testclasses.abap 작성"
+    },
+    {
+      "at": "2026-11-19T06:55:02.665Z",
+      "agent": "테스트 담당",
+      "text": "🔎 SAP 조회: SearchObject ZRMM99* PROG false"
+    },
+    {
+      "at": "2026-11-19T06:55:03.111Z",
+      "agent": "테스트 담당",
+      "text": "🔎 SAP 조회: SearchObject CL_ABAP_UNIT_ASSERT false"
+    },
+    {
+      "at": "2026-11-19T06:57:24.850Z",
+      "agent": "테스트 담당",
+      "text": "✏️ 04_test.md 작성"
+    },
+    {
+      "at": "2026-11-19T06:58:00.251Z",
+      "agent": "PL",
+      "text": "📨 팀장님께 테스트 담당 결과를 보고드립니다 (권고: 승인) — 테스트 담당이 바뀐 설계·개발 내용에 맞춰 테스트 문서(04_test.md)와 자동 테스트 코드(ABAP Unit 18건)를 다시 만들었습니다. 이전 테스트 코드는 설계 변경으로 없어진 구조체(ZSMM3600/ZTTMM3600)를 계속 쓰고 있어서 그대로 반영했다면 개발계 활성화가 실패했을 것입니다. 이번에 클래스 안에 정의한 결과 형식으로 바꿔 이 문제를 해결했고, 결과 형식(자재코드·자재내역·기본단위)이 바뀌지 않았는지 확인하는 테스트도 1건 새로 넣었습니다. 개발 소스에서 고쳐야 할 결함은 없습니다. 판정은 '조건부 합격'으로, 개발계 반영 때 활성화와 ABAP Unit이 성공하고 SE37 화면에서 결과가 보이는지 확인해야 합니다. 시스템에 예전 클래스의 비활성 버전이 남아 있으니 반영 결과에서 클래스 본문과 테스트 코드가 모두 '갱신'으로 나오는지 함께 확인해 주세요."
+    },
+    {
+      "at": "2026-11-19T07:07:00.583Z",
+      "agent": "팀장",
+      "text": "✅ 테스트 담당 결과를 승인했습니다."
+    },
+    {
+      "at": "2026-11-19T07:07:00.615Z",
+      "agent": "PL",
+      "text": "분석~테스트가 모두 승인되었습니다. 개발계 반영을 승인해 주세요."
+    },
+    {
+      "at": "2026-11-19T07:07:00.701Z",
+      "agent": "PL",
+      "text": "📚 이번 요청에서 배운 점을 지식 위키에 정리합니다."
+    },
+    {
+      "at": "2026-11-19T07:09:28.296Z",
+      "agent": "PL",
+      "text": "📚 지식 위키 정리 완료 — 새 문서 '신규 DDIC 없이 개발하는 방법', 보강 'RFC 조회 함수 모듈 설계 패턴', 보강 '테스트계 반영 전 점검 항목'"
+    },
+    {
+      "at": "2026-11-19T07:11:39.688Z",
+      "agent": "팀장",
+      "text": "개발계 반영을 승인했습니다."
+    },
+    {
+      "at": "2026-11-19T07:11:40.484Z",
+      "agent": "적용",
+      "text": "⚠️ MSAG ZMMM3 반영 실패 — SE91에서 직접 만들어 주세요: 메시지 클래스 ZMMM3 저장 실패 (HTTP 400): System expected the element '{http://www.sap.com/adt/MessageClass}messageClass'"
+    },
+    {
+      "at": "2026-11-19T07:11:40.825Z",
+      "agent": "적용",
+      "text": "FUGR ZFGMM71 신규 생성 완료"
+    },
+    {
+      "at": "2026-11-19T07:11:41.894Z",
+      "agent": "적용",
+      "text": "CLAS ZCL_MM_MTART_MATLIST 소스 갱신 완료 (테스트 클래스 포함)"
+    },
+    {
+      "at": "2026-11-19T07:11:42.437Z",
+      "agent": "적용",
+      "text": "FUNC Z_MM_GET_MATERIAL_LIST (그룹 ZFGMM71) 신규 생성 완료"
+    },
+    {
+      "at": "2026-11-19T07:11:43.503Z",
+      "agent": "적용",
+      "text": "활성화 성공"
+    },
+    {
+      "at": "2026-11-19T07:11:44.538Z",
+      "agent": "적용",
+      "text": "ZCL_MM_MTART_MATLIST ABAP Unit: 테스트 메서드 18개 실행 (UT01_MTART_LOWER_LEAD_SPACE, UT02_MTART_INITIAL, UT03_SPRAS_DEFAULT_AND_GIVEN, UT04_MAX_ROWS_NORMALIZE, UT05_LVORM_RANGE_EXCLUDE, UT06_LVORM_RANGE_WITH_DEL, UT07_UP_TO_ROWS, UT08_LIST_MAKT_MISSING, UT09_LIST_SORTED, UT10_LIST_TRUNCATED, UT11_LIST_EXACT_N_NOT_TRUNC, UT12_LIST_MAX_ZERO_ALL, UT13_MAKE_RETURN_FIELDS, UT14_EXECUTE_GUARD_NO_INPUT, UT15_DECIDE_RETURN_S_AND_W, UT16_CONSTRUCTOR_NORMALIZE, UT17_LIST_EMPTY_INPUT, UT18_LIST_TYPE_CONTRACT)\n모든 테스트 통과"
+    },
+    {
+      "at": "2026-11-19T07:11:44.540Z",
+      "agent": "적용",
+      "text": "📋 개발계 반영을 마쳤습니다."
+    },
+    {
+      "at": "2026-11-19T07:11:44.550Z",
+      "agent": "PL",
+      "text": "📚 이번 요청에서 배운 점을 지식 위키에 정리합니다."
+    },
+    {
+      "at": "2026-11-19T07:13:01.142Z",
+      "agent": "PL",
+      "text": "📚 지식 위키 정리 완료 — 보강 'RFC 조회 함수 모듈 설계 패턴', 보강 '신규 DDIC 없이 개발하는 방법', 보강 '테스트계 반영 전 점검 항목'"
+    },
+    {
+      "at": "2026-11-19T07:13:19.973Z",
+      "agent": "팀장",
+      "text": "↩️ 개발 담당에게 수정 지시 — zmmm3 쓰지밀고 Zmm 메시지클래스를 이용해서 해줘"
+    },
+    {
+      "at": "2026-11-19T07:13:19.984Z",
+      "agent": "개발 담당",
+      "text": "팀장 수정 지시를 반영해 다시 작업합니다."
+    },
+    {
+      "at": "2026-11-19T07:13:19.990Z",
+      "agent": "PL",
+      "text": "sap-developer 에이전트에게 작업을 지시했습니다."
+    },
+    {
+      "at": "2026-11-19T07:13:37.573Z",
+      "agent": "개발 담당",
+      "text": "🔎 SAP 조회: GetMessageClass ZMM"
+    },
+    {
+      "at": "2026-11-19T07:14:34.682Z",
+      "agent": "개발 담당",
+      "text": "🔎 SAP 조회: SearchObject ZMM MSAG false"
+    },
+    {
+      "at": "2026-11-19T07:14:46.491Z",
+      "agent": "개발 담당",
+      "text": "✏️ src/ZCL_MM_MTART_MATLIST.abap 수정"
+    },
+    {
+      "at": "2026-11-19T07:14:47.946Z",
+      "agent": "개발 담당",
+      "text": "✏️ src/ZCL_MM_MTART_MATLIST.abap 수정"
+    },
+    {
+      "at": "2026-11-19T07:14:51.139Z",
+      "agent": "개발 담당",
+      "text": "✏️ src/Z_MM_GET_MATERIAL_LIST.fm.abap 수정"
+    },
+    {
+      "at": "2026-11-19T07:14:53.745Z",
+      "agent": "개발 담당",
+      "text": "✏️ src/ZMM.msag.json 작성"
+    },
+    {
+      "at": "2026-11-19T07:15:07.077Z",
+      "agent": "개발 담당",
+      "text": "✏️ 03_development.md 수정"
+    },
+    {
+      "at": "2026-11-19T07:15:10.721Z",
+      "agent": "개발 담당",
+      "text": "✏️ 03_development.md 수정"
+    },
+    {
+      "at": "2026-11-19T07:15:11.929Z",
+      "agent": "개발 담당",
+      "text": "✏️ 03_development.md 수정"
+    },
+    {
+      "at": "2026-11-19T07:15:15.455Z",
+      "agent": "개발 담당",
+      "text": "✏️ 03_development.md 수정"
+    },
+    {
+      "at": "2026-11-19T07:15:16.902Z",
+      "agent": "개발 담당",
+      "text": "✏️ 03_development.md 수정"
+    },
+    {
+      "at": "2026-11-19T07:15:19.815Z",
+      "agent": "개발 담당",
+      "text": "✏️ 03_development.md 수정"
+    },
+    {
+      "at": "2026-11-19T07:15:20.912Z",
+      "agent": "개발 담당",
+      "text": "✏️ 03_development.md 수정"
+    },
+    {
+      "at": "2026-11-19T07:15:22.358Z",
+      "agent": "개발 담당",
+      "text": "✏️ 03_development.md 수정"
+    },
+    {
+      "at": "2026-11-19T07:15:25.205Z",
+      "agent": "개발 담당",
+      "text": "✏️ 03_development.md 수정"
+    },
+    {
+      "at": "2026-11-19T07:15:30.426Z",
+      "agent": "개발 담당",
+      "text": "✏️ 03_development.md 수정"
+    },
+    {
+      "at": "2026-11-19T07:15:33.063Z",
+      "agent": "개발 담당",
+      "text": "✏️ 03_development.md 수정"
+    },
+    {
+      "at": "2026-11-19T07:15:35.802Z",
+      "agent": "개발 담당",
+      "text": "✏️ 03_development.md 수정"
+    },
+    {
+      "at": "2026-11-19T07:15:45.705Z",
+      "agent": "개발 담당",
+      "text": "✏️ 03_development.md 수정"
+    },
+    {
+      "at": "2026-11-19T07:15:48.752Z",
+      "agent": "개발 담당",
+      "text": "✏️ 03_development.md 수정"
+    },
+    {
+      "at": "2026-11-19T07:15:50.999Z",
+      "agent": "개발 담당",
+      "text": "✏️ 03_development.md 수정"
+    },
+    {
+      "at": "2026-11-19T07:15:53.208Z",
+      "agent": "개발 담당",
+      "text": "✏️ 03_development.md 수정"
+    },
+    {
+      "at": "2026-11-19T07:15:58.052Z",
+      "agent": "개발 담당",
+      "text": "✏️ 03_development.md 수정"
+    },
+    {
+      "at": "2026-11-19T07:15:59.203Z",
+      "agent": "개발 담당",
+      "text": "✏️ 03_development.md 수정"
+    },
+    {
+      "at": "2026-11-19T07:16:00.251Z",
+      "agent": "개발 담당",
+      "text": "✏️ 03_development.md 수정"
+    },
+    {
+      "at": "2026-11-19T07:16:01.399Z",
+      "agent": "개발 담당",
+      "text": "✏️ 03_development.md 수정"
+    },
+    {
+      "at": "2026-11-19T07:16:02.702Z",
+      "agent": "개발 담당",
+      "text": "✏️ 03_development.md 수정"
+    },
+    {
+      "at": "2026-11-19T07:16:09.018Z",
+      "agent": "개발 담당",
+      "text": "✏️ 03_development.md 수정"
+    },
+    {
+      "at": "2026-11-19T07:16:12.530Z",
+      "agent": "개발 담당",
+      "text": "✏️ 03_development.md 수정"
+    },
+    {
+      "at": "2026-11-19T07:17:02.557Z",
+      "agent": "PL",
+      "text": "📨 팀장님께 개발 담당 결과를 보고드립니다 (권고: 승인) — 팀장님 지시대로 ZMMM3 대신 기존 메시지 클래스 ZMM을 쓰도록 바꿨습니다. 오류·안내 메시지 6개는 ZMM에서 비어 있는 번호인 338~343번에 새로 넣습니다. 개발계에서 ZMM을 직접 조회해 337번까지만 쓰이고 있음을 확인했고, 개발계에 반영할 때 기존 메시지는 바꾸지 않고 이 6개만 추가됩니다. 프로그램 로직과 입출력 항목은 그대로입니다. 쓰지 않게 된 ZMMM3 정의 파일은 삭제하지 않고 이름만 ZMMM3.msag.json.unused로 바꿔 개발계 반영에서 빠지게 했습니다(되돌릴 수 있음). 남은 일은 두 가지입니다. 테스트 소스에 남은 ZMMM3 표기 4곳은 다음 테스트 단계에서 고칩니다. 설계서 7장에는 아직 예전 메시지 번호가 남아 있지만, 이 차이는 개발 문서(03_development.md)에 기록해 두었습니다."
+    },
+    {
+      "at": "2026-11-19T07:19:46.741Z",
+      "agent": "팀장",
+      "text": "✅ 개발 담당 결과를 승인했습니다."
+    },
+    {
+      "at": "2026-11-19T07:19:46.744Z",
+      "agent": "PL",
+      "text": "테스트 담당 작업 차례입니다. Claude Code에서 진행합니다."
+    },
+    {
+      "at": "2026-11-19T07:19:46.755Z",
+      "agent": "테스트 담당",
+      "text": "작업을 시작합니다."
+    },
+    {
+      "at": "2026-11-19T07:19:46.758Z",
+      "agent": "PL",
+      "text": "sap-tester 에이전트에게 작업을 지시했습니다."
+    },
+    {
+      "at": "2026-11-19T07:20:37.237Z",
+      "agent": "테스트 담당",
+      "text": "🔎 SAP 조회: SearchObject ZMM MSAG false"
+    },
+    {
+      "at": "2026-11-19T07:20:37.879Z",
+      "agent": "테스트 담당",
+      "text": "🔎 SAP 조회: SearchObject ZMMM* MSAG false"
+    },
+    {
+      "at": "2026-11-19T07:20:38.532Z",
+      "agent": "테스트 담당",
+      "text": "🔎 SAP 조회: GetClass ZCL_MM_MTART_MATLIST 50 60"
+    },
+    {
+      "at": "2026-11-19T07:23:23.089Z",
+      "agent": "테스트 담당",
+      "text": "✏️ src/ZCL_MM_MTART_MATLIST.testclasses.abap 작성"
+    },
+    {
+      "at": "2026-11-19T07:26:21.907Z",
+      "agent": "테스트 담당",
+      "text": "✏️ 04_test.md 작성"
     }
   ],
   "createdAt": "2026-11-19T05:11:53.663Z",
-  "updatedAt": "2026-11-19T06:47:19.033Z"
+  "updatedAt": "2026-11-19T07:26:21.907Z",
+  "lessons": {
+    "at": "2026-11-19T07:13:01.142Z",
+    "docs": [
+      {
+        "title": "RFC 조회 함수 모듈 설계 패턴",
+        "action": "updated",
+        "summary": "ZMMM3 자동 생성 실패 뒤 메시지 문구만 비정상인 상태라 SE91 등록 전에는 호출측에 넘기지 않는다는 반영 결과를 메시지 처리 절에 보강"
+      },
+      {
+        "title": "신규 DDIC 없이 개발하는 방법",
+        "action": "updated",
+        "summary": "클래스 TYPES를 참조하는 일반 FM이 개발계에서 생성·활성화 성공한 것으로 시스템 미확인 항목을 확인 처리, DDIC를 없애도 메시지 클래스 SE91 수작업이 남을 수 있다는 점 추가, 다이어그램 수정"
+      },
+      {
+        "title": "테스트계 반영 전 점검 항목",
+        "action": "updated",
+        "summary": "3차 반영 결과(같은 이송요청으로 재반영, 비활성 클래스 소스 갱신 정상, 활성화·ABAP Unit 18건 통과)와 MSAG ZMMM3 자동 생성 HTTP 400 실패(도구 문제, 경고만 남고 결과 ok로 보이는 점, 동적 MESSAGE라 활성화는 통과, SE91 수작업 조치)를 추가하고 다이어그램에 반영 결과 경고 확인 단계 반영"
+      }
+    ]
+  }
 }

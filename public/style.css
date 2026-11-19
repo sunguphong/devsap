@@ -378,3 +378,14 @@ a.seat:hover { outline: 2px solid var(--accent); outline-offset: 1px; }
 /* 드롭다운 펼친 목록: 칸 배경이 투명(.pill .sys)이어도 항목은 테마 색으로 (다크에서 흰 바탕에 밝은 글자 방지) */
 select option, select optgroup { background-color: var(--panel); color: var(--text); }
 select option:checked { background-color: var(--accent-bg2); color: var(--text); }
+
+/* 관리자: 인프라 구성 */
+#adminBody { padding: 20px 24px 60px; }
+#adminBody .admin { max-width: 1400px; margin: 0 auto; }
+.a-tiles { grid-template-columns: repeat(5, minmax(110px, 1fr)); flex-basis: 720px; }
+.a-tiles .o-tile b.a-v { font-size: 18px; color: #fff; margin: 2px 0; }
+#adminBody .hb-table table { width: 100%; }
+#adminBody .hb-table td:first-child { width: auto; }
+#adminBody td.a-key { font-weight: 600; color: var(--text); white-space: nowrap; }
+#adminBody pre.mermaid { max-height: none; }
+@media (max-width: 1000px) { .a-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
