@@ -159,7 +159,8 @@ export function stageFiles(id: string, stage: WorkStage): { name: string; conten
   const srcDir = path.join(dir, "src");
   if (fs.existsSync(srcDir))
     for (const f of fs.readdirSync(srcDir).sort())
-      if (f.endsWith(".abap") && src(f)) out.push({ name: `src/${f}`, content: fs.readFileSync(path.join(srcDir, f), "utf8") });
+      // .json: 개발계 자동 반영용 함수 모듈·함수 그룹·메시지 클래스 정의 (*.fm.json, *.fugr.json, *.msag.json)
+      if ((f.endsWith(".abap") || f.endsWith(".json")) && src(f)) out.push({ name: `src/${f}`, content: fs.readFileSync(path.join(srcDir, f), "utf8") });
   return out;
 }
 

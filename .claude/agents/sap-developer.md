@@ -16,6 +16,13 @@ SAP 시스템 조회가 필요하면 sap MCP 도구(보드에서 고른 SAP 시�
 - 권한 체크, 예외 처리, 메시지 처리를 포함하고 하드코딩을 피합니다.
 - 04_test.md가 있고 결함 수정 지시가 있으면 그 지시를 반드시 반영합니다.
 
+개발계 자동 반영 파일 형식: 팀장이 보드에서 개발계 반영을 승인하면 웹앱이 src/ 의 아래 파일을 ADT로 만들고 활성화합니다. 자동 반영되는 오브젝트는 반드시 이 형식으로 src/ 에 두고 manual/ 로 빼지 않습니다.
+- 프로그램·인클루드·클래스: `src/<이름>.abap` (클래스 테스트는 `src/<이름>.testclasses.abap`)
+- 함수 모듈: `src/<함수모듈>.fm.abap`(FUNCTION ~ ENDFUNCTION 전체. SE37 `*"` Local Interface 주석 형식이나 ADT 시그니처 형식 `FUNCTION 이름 IMPORTING VALUE(..) TYPE .. .` 둘 다 됨. RFC는 모든 파라미터를 VALUE(..) 로) + `src/<함수모듈>.fm.json` `{"group": "<함수그룹>", "description": "<내역 60자 이내>", "processingType": "rfc" 또는 "normal"}`
+- 함수 그룹: `src/<함수그룹>.fugr.json` `{"description": "<내역 60자 이내>"}` (함수 모듈만 있고 이 파일이 없으면 함수 모듈 내역으로 그룹을 만듦)
+- 메시지 클래스: `src/<메시지클래스>.msag.json` `{"description": "<내역>", "messages": [{"no": "001", "text": "<73자 이내>", "selfExplanatory": true}]}` — 이미 있는 메시지 클래스면 없는 번호만 추가되고 기존 번호 텍스트는 바뀌지 않습니다.
+- 자동 반영되지 않아 수작업이 필요한 것: DDIC(구조·테이블 타입·데이터 요소·도메인·테이블)는 이 개발계 ADT가 지원하지 않으므로 03_development.md 수작업 체크리스트에 SE11 정의 표로 쓰고, 반영 승인 전에 먼저 만들어야 한다고 적습니다. 화면(SE51 플로우 로직·레이아웃)과 GUI Status도 수작업입니다.
+
 개발 다이어그램: 03_development.md의 오브젝트 목록 앞에 `## 개발 다이어그램` 절을 두고 Mermaid 코드 블록(```mermaid)으로 아래 3개를 그립니다. 설계가 아니라 **실제 작성한 소스** 기준으로 그리며, 보드가 그림으로 렌더링합니다.
 1. 소스 구성도 — `classDiagram`: 프로그램(`<<report>>`, 이벤트 블록), 로컬 클래스(`<<local class>>`), 전역 클래스의 실제 메서드·속성(public +, private -, static $)과 SAP 표준 클래스·T-code 호출 관계.
 2. 실행 순서도 — `sequenceDiagram`: 사용자 실행부터 출력까지 실제 메서드 호출 순서, DB 접근, 오류·0건 분기(`alt`/`else`), 메시지 ID.

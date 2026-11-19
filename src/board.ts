@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { AdtClient, objectUri } from "./adt.ts";
+import { AdtClient, fmUri, fugrUri, msagUri, objectUri } from "./adt.ts";
 import { resolveSystem, sapConfig } from "./systems.ts";
 import type { ObjectType } from "./adt.ts";
 import { getTicket, log, saveTicket, WORK_DIR } from "./store.ts";
@@ -93,7 +93,7 @@ function srcFiles(id: string): { file: string; source: string }[] {
   if (!fs.existsSync(srcDir)) return [];
   return fs
     .readdirSync(srcDir)
-    .filter((f) => f.endsWith(".abap") && !f.endsWith(".testclasses.abap"))
+    .filter((f) => f.endsWith(".abap") && !f.endsWith(".testclasses.abap") && !f.endsWith(".fm.abap"))
     .map((f) => ({ file: f, source: fs.readFileSync(path.join(srcDir, f), "utf8") }));
 }
 
@@ -129,6 +129,76 @@ function devObjects(id: string): DevObject[] {
   return objs.sort((a, b) => order[a.type] - order[b.type]);
 }
 
+// ---------- 함수 그룹 · 함수 모듈 · 메시지 클래스 (src/ 의 정해진 형식 파일) ----------
+//  src/<함수그룹>.fugr.json      {"description": "..."}
+//  src/<함수모듈>.fm.abap        FUNCTION ... ENDFUNCTION (SE37 *" 인터페이스 주석 형식도 받아서 ADT 시그니처로 바꾼다)
+//  src/<함수모듈>.fm.json        {"group": "ZFG..", "description": "...", "processingType": "rfc" | "normal"}
+//  src/<메시지클래스>.msag.json  {"description": "...", "messages": [{"no": "001", "text": "...", "selfExplanatory": true}]}
+// DDIC(구조·테이블 타입 등)는 이 개발계 ADT가 지원하지 않아 SE11 수작업으로 남는다.
+
+interface FuncGroup { name: string; description: string }
+interface FuncModule { name: string; group: string; description: string; processingType: string; source: string }
+interface MsgClass { name: string; description: string; messages: { no: string; text: string; selfExplanatory?: boolean }[] }
+
+function readJson(file: string, what: string): any {
+  try {
+    return JSON.parse(fs.readFileSync(file, "utf8"));
+  } catch (e) {
+    throw new Error(`${what} 파일을 읽지 못했습니다 (${path.basename(file)}): ${(e as Error).message}`);
+  }
+}
+
+function srcList(id: string, suffix: string): string[] {
+  const dir = path.join(WORK_DIR, id, "src");
+  return fs.existsSync(dir) ? fs.readdirSync(dir).filter((f) => f.toLowerCase().endsWith(suffix)) : [];
+}
+
+/** SE37 의 *" Local Interface 주석으로 쓴 소스를 ADT 소스 형식(FUNCTION 이름 IMPORTING ... .)으로 바꾼다 */
+export function toAdtFunctionSource(source: string): string {
+  const head = source.match(/^([ \t]*FUNCTION[ \t]+[\w\/]+)[ \t]*\.[ \t]*\r?\n((?:[ \t]*\*"[^\n]*\r?\n)+)/im);
+  if (!head) return source; // 이미 ADT 형식이거나 인터페이스 주석이 없다
+  const sig = head[2]
+    .split(/\r?\n/)
+    .map((l) => l.replace(/^[ \t]*\*"/, "").replace(/^\*"?/, "").trimEnd())
+    .filter((l) => l.trim() && !/^-+$/.test(l.trim()) && !/Local Interface:/i.test(l))
+    .map((l) => (/^\s*(IMPORTING|EXPORTING|CHANGING|TABLES|EXCEPTIONS|RAISING)\s*$/i.test(l) ? `  ${l.trim().toUpperCase()}` : `    ${l.trim().replace(/\s+/g, " ")}`));
+  return source.replace(head[0], `${head[1].trimEnd()}${sig.length ? "\n" + sig.join("\n") : ""}\n  .\n`);
+}
+
+function funcGroups(id: string): FuncGroup[] {
+  return srcList(id, ".fugr.json").map((f) => {
+    const j = readJson(path.join(WORK_DIR, id, "src", f), "함수 그룹");
+    return { name: f.slice(0, -".fugr.json".length).toUpperCase(), description: String(j.description ?? "").slice(0, 60) };
+  });
+}
+
+function funcModules(id: string): FuncModule[] {
+  const dir = path.join(WORK_DIR, id, "src");
+  return srcList(id, ".fm.abap").map((f) => {
+    const base = f.slice(0, -".fm.abap".length);
+    const metaFile = path.join(dir, `${base}.fm.json`);
+    if (!fs.existsSync(metaFile)) throw new Error(`${f}: 함수 그룹·내역을 적은 ${base}.fm.json 이 없습니다.`);
+    const j = readJson(metaFile, "함수 모듈");
+    if (!j.group) throw new Error(`${base}.fm.json 에 group(함수 그룹)이 없습니다.`);
+    return {
+      name: base.toUpperCase(),
+      group: String(j.group).toUpperCase(),
+      description: String(j.description ?? base).slice(0, 60),
+      processingType: /rfc|remote/i.test(String(j.processingType ?? "")) ? "rfc" : "normal",
+      source: toAdtFunctionSource(fs.readFileSync(path.join(dir, f), "utf8")),
+    };
+  });
+}
+
+function msgClasses(id: string): MsgClass[] {
+  return srcList(id, ".msag.json").map((f) => {
+    const j = readJson(path.join(WORK_DIR, id, "src", f), "메시지 클래스");
+    const messages = (Array.isArray(j.messages) ? j.messages : []).map((m: any) => ({ no: String(m.no ?? "").padStart(3, "0"), text: String(m.text ?? ""), selfExplanatory: m.selfExplanatory !== false }));
+    if (!messages.length) throw new Error(`${f}: messages 가 비어 있습니다.`);
+    return { name: f.slice(0, -".msag.json".length).toUpperCase(), description: String(j.description ?? "").slice(0, 60), messages };
+  });
+}
+
 /** 웹앱이 반영하지 못해 SE51 등에서 직접 반영해야 하는 파일 */
 function manualFiles(id: string): string[] {
   return srcFiles(id)
@@ -140,7 +210,8 @@ export function approveDeploy(id: string, cfg: DeployConfig): void {
   const t = mustGet(id);
   if (deploying.has(id) || (t.status !== "awaiting_deploy" && t.status !== "failed")) throw new Error("개발계 반영 승인 대기 상태가 아닙니다.");
   t.deployConfig = { package: cfg.package.trim().toUpperCase() || "$TMP", transport: cfg.transport.trim().toUpperCase() };
-  if (!devObjects(id).length) throw new Error("반영할 소스(work/<요청ID>/src/*.abap)가 없습니다.");
+  if (!devObjects(id).length && !funcModules(id).length && !msgClasses(id).length && !funcGroups(id).length)
+    throw new Error("반영할 소스(work/<요청ID>/src/*.abap, *.fm.abap, *.msag.json)가 없습니다.");
   t.status = "deploying";
   t.stages.deploy.status = "running";
   t.stages.deploy.attempts++;
@@ -167,6 +238,11 @@ async function runDeploy(id: string): Promise<void> {
   const adt = sap ? new AdtClient(sap) : null;
   const mode = adt ? `실제 반영 (${resolveSystem(t.system)} · ${sap!.url}, 클라이언트 ${sap!.client})` : "시뮬레이션 (SAP 접속 정보 없음 - 실제로 반영되지 않음)";
   const objs = devObjects(id);
+  const groups = funcGroups(id);
+  const fms = funcModules(id);
+  const msags = msgClasses(id);
+  // 함수 모듈이 쓰는 함수 그룹은 .fugr.json 이 없어도 만든다 (내역은 함수 모듈 내역으로)
+  for (const fm of fms) if (!groups.some((g) => g.name === fm.group)) groups.push({ name: fm.group, description: fm.description });
   const lines: string[] = [`반영 모드: ${mode}`, `패키지 ${pkg}, 이송요청 ${transport || (pkg.startsWith("$") ? "없음 (로컬 오브젝트)" : "자동 생성")}`, ""];
   const note = (text: string) => {
     lines.push(text);
@@ -179,9 +255,46 @@ async function runDeploy(id: string): Promise<void> {
     const text = `[devsap ${id}] ${t.title}`;
     if (!adt) note(`[시뮬레이션] 이송요청 자동 생성 ("${text.slice(0, 60)}")`);
     else {
-      transport = await adt.createTransport(pkg, text, objectUri(objs[0].type, objs[0].name));
+      const ref = objs[0] ? objectUri(objs[0].type, objs[0].name) : groups[0] ? fugrUri(groups[0].name) : msagUri(msags[0].name);
+      transport = await adt.createTransport(pkg, text, ref);
       t.deployConfig = { package: pkg, transport };
       note(`이송요청 ${transport} 자동 생성 ("${text.slice(0, 60)}")`);
+    }
+  }
+
+  // 메시지 클래스: 활성화 대상이 아니라 실패해도 나머지 반영은 계속한다 (경고로 남김)
+  for (const m of msags) {
+    if (!adt) {
+      note(`[시뮬레이션] MSAG ${m.name} 메시지 ${m.messages.length}건 생성/추가`);
+      continue;
+    }
+    try {
+      const cur = await adt.readMessageClass(m.name);
+      if (!cur) {
+        await adt.createMessageClass(m.name, m.description || m.name, pkg, transport, m.messages);
+        note(`MSAG ${m.name} 신규 생성 완료 (메시지 ${m.messages.length}건)`);
+      } else {
+        const add = m.messages.filter((x) => !cur.numbers.has(x.no));
+        const diff = m.messages.filter((x) => cur.numbers.has(x.no) && cur.numbers.get(x.no) !== x.text).map((x) => x.no);
+        if (add.length) await adt.addMessages(m.name, cur.xml, add, transport);
+        const added = add.length ? `메시지 ${add.map((x) => x.no).join(", ")} 추가` : "추가할 메시지 없음";
+        const warn = diff.length ? ` · ⚠️ ${diff.join(", ")}번은 SAP 텍스트와 달라 그대로 두었습니다 (SE91 확인)` : "";
+        note(`MSAG ${m.name} 이미 있음 — ${added}${warn}`);
+      }
+    } catch (e) {
+      note(`⚠️ MSAG ${m.name} 반영 실패 — SE91에서 직접 만들어 주세요: ${(e as Error).message}`);
+    }
+  }
+
+  for (const g of groups) {
+    if (!adt) {
+      note(`[시뮬레이션] FUGR ${g.name} 생성`);
+      continue;
+    }
+    if (await adt.existsAt(fugrUri(g.name), `함수 그룹 ${g.name}`)) note(`FUGR ${g.name} 이미 있음`);
+    else {
+      await adt.createFunctionGroup(g.name, g.description || g.name, pkg, transport);
+      note(`FUGR ${g.name} 신규 생성 완료`);
     }
   }
 
@@ -207,13 +320,34 @@ async function runDeploy(id: string): Promise<void> {
     note(`${o.type} ${o.name}${mainNote()} ${existed ? "소스 갱신" : "신규 생성"} 완료${o.type === "CLAS" && o.testSource ? " (테스트 클래스 포함)" : ""}`);
   }
 
+  // 함수 모듈은 클래스 다음에 만든다 (함수 모듈이 클래스를 호출하는 경우가 많다)
+  for (const fm of fms) {
+    if (!adt) {
+      note(`[시뮬레이션] FUNC ${fm.name} (그룹 ${fm.group}, ${fm.processingType === "rfc" ? "Remote-Enabled" : "일반"}) 생성/저장`);
+      continue;
+    }
+    const uri = fmUri(fm.group, fm.name);
+    const existed = await adt.existsAt(uri, `함수 모듈 ${fm.name}`);
+    if (!existed) await adt.createFunctionModule(fm.group, fm.name, fm.description, transport, fm.processingType);
+    await adt.writeSourceAt(uri, fm.name, "main", fm.source, transport);
+    note(`FUNC ${fm.name} (그룹 ${fm.group}) ${existed ? "소스 갱신" : "신규 생성"} 완료`);
+  }
+
   const manual = manualFiles(id);
   if (manual.length) note(`⚠️ 수동 반영 필요 (ADT로 반영 불가): ${manual.join(", ")} — SE51 화면 플로우 로직은 화면 레이아웃·GUI Status와 함께 직접 반영해 주세요.`);
 
   let ok = true;
   if (adt) {
-    const r = await adt.activate(objs);
+    const r = await adt.activate(objs, [
+      ...groups.map((g) => ({ uri: fugrUri(g.name), name: g.name })),
+      ...fms.map((fm) => ({ uri: fmUri(fm.group, fm.name), name: fm.name })),
+    ]);
     ok = r.ok;
+    // Remote-Enabled 로 만들어 달라고 했는데 SAP에 일반 함수로 남았으면 알려 준다 (이 시스템 ADT가 처리 유형을 받지 않는 경우)
+    for (const fm of fms.filter((x) => x.processingType === "rfc")) {
+      const pt = await adt.functionModuleProcessingType(fm.group, fm.name);
+      if (pt !== "rfc") note(`⚠️ FUNC ${fm.name} 처리 유형이 ${pt ?? "확인 불가"} 입니다. SE37 속성 탭에서 Remote-Enabled Module 로 바꾸고 다시 활성화해 주세요.`);
+    }
     note(`활성화 ${r.ok ? "성공" : "실패"}${r.messages.length ? `\n${r.messages.join("\n")}` : ""}`);
     if (ok)
       for (const o of objs.filter((x) => x.type === "CLAS" && x.testSource)) {

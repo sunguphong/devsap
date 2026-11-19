@@ -27,6 +27,10 @@ export function objectUri(type: ObjectType, name: string): string {
   return type === "PROG" ? `/sap/bc/adt/programs/programs/${n}` : type === "INCL" ? `/sap/bc/adt/programs/includes/${n}` : `/sap/bc/adt/oo/classes/${n}`;
 }
 
+export const fugrUri = (group: string) => `/sap/bc/adt/functions/groups/${encodeURIComponent(group.toLowerCase())}`;
+export const fmUri = (group: string, name: string) => `${fugrUri(group)}/fmodules/${encodeURIComponent(name.toLowerCase())}`;
+export const msagUri = (name: string) => `/sap/bc/adt/messageclass/${encodeURIComponent(name.toLowerCase())}`;
+
 /** include는 메인 프로그램 문맥에서 활성화해야 하므로 ?context= 를 붙인다 */
 function activationUri(o: { type: ObjectType; name: string; mainProgram?: string }): string {
   const uri = objectUri(o.type, o.name);
@@ -161,7 +165,11 @@ export class AdtClient {
   }
 
   async writeSource(type: ObjectType, name: string, part: SourcePart, source: string, transport: string): Promise<void> {
-    const uri = objectUri(type, name);
+    return this.writeSourceAt(objectUri(type, name), name, part, source, transport);
+  }
+
+  /** 오브젝트 URI 기준 소스 저장 (함수 모듈처럼 objectUri로 표현되지 않는 오브젝트도 쓴다) */
+  async writeSourceAt(uri: string, name: string, part: SourcePart, source: string, transport: string): Promise<void> {
     const handle = await this.lock(uri);
     try {
       const target = part === "main" ? `${uri}/source/main` : `${uri}/includes/testclasses`;
@@ -189,9 +197,12 @@ export class AdtClient {
   }
 
   /** 활성화 후 오류/경고 메시지를 사람이 읽을 수 있는 형태로 돌려준다 */
-  async activate(objects: { type: ObjectType; name: string; mainProgram?: string }[]): Promise<{ ok: boolean; messages: string[] }> {
-    const refs = objects
-      .map((o) => `<adtcore:objectReference adtcore:uri="${xmlEscape(activationUri(o))}" adtcore:name="${xmlEscape(o.name.toUpperCase())}"/>`)
+  async activate(
+    objects: { type: ObjectType; name: string; mainProgram?: string }[],
+    extra: { uri: string; name: string }[] = [],
+  ): Promise<{ ok: boolean; messages: string[] }> {
+    const refs = [...objects.map((o) => ({ uri: activationUri(o), name: o.name })), ...extra]
+      .map((o) => `<adtcore:objectReference adtcore:uri="${xmlEscape(o.uri)}" adtcore:name="${xmlEscape(o.name.toUpperCase())}"/>`)
       .join("");
     const body = `<?xml version="1.0" encoding="UTF-8"?><adtcore:objectReferences xmlns:adtcore="http://www.sap.com/adt/core">${refs}</adtcore:objectReferences>`;
     const res = await this.req("POST", "/sap/bc/adt/activation", { body, contentType: "application/xml", query: { method: "activate", preauditRequested: "true" } });
@@ -207,6 +218,78 @@ export class AdtClient {
     }
     const failed = /activationExecuted="false"/.test(res.text) || messages.some((m) => m.startsWith("[E]"));
     return { ok: !failed, messages };
+  }
+
+  // ---------- 함수 그룹 · 함수 모듈 ----------
+
+  async existsAt(uri: string, what: string): Promise<boolean> {
+    const res = await this.req("GET", uri);
+    if (res.status === 200) return true;
+    if (res.status === 404) return false;
+    AdtClient.fail(`${what} 존재 확인`, res);
+  }
+
+  private common(name: string, description: string): string {
+    return `xmlns:adtcore="http://www.sap.com/adt/core" adtcore:description="${xmlEscape(description.slice(0, 60))}" adtcore:name="${xmlEscape(name.toUpperCase())}" adtcore:masterLanguage="${this.cfg.language}" adtcore:responsible="${xmlEscape(this.cfg.user.toUpperCase())}"`;
+  }
+
+  async createFunctionGroup(name: string, description: string, pkg: string, transport: string): Promise<void> {
+    const body = `<?xml version="1.0" encoding="UTF-8"?><group:abapFunctionGroup xmlns:group="http://www.sap.com/adt/functions/groups" ${this.common(name, description)} adtcore:type="FUGR/F"><adtcore:packageRef adtcore:name="${xmlEscape(pkg.toUpperCase())}"/></group:abapFunctionGroup>`;
+    const res = await this.req("POST", "/sap/bc/adt/functions/groups", { body, contentType: "application/*", query: transport ? { corrNr: transport } : {} });
+    if (res.status >= 300) AdtClient.fail(`함수 그룹 ${name} 생성`, res);
+  }
+
+  /** processingType: normal | rfc (Remote-Enabled) */
+  async createFunctionModule(group: string, name: string, description: string, transport: string, processingType: string): Promise<void> {
+    const body = `<?xml version="1.0" encoding="UTF-8"?><fmodule:abapFunctionModule xmlns:fmodule="http://www.sap.com/adt/functions/fmodules" ${this.common(name, description)} adtcore:type="FUGR/FF" fmodule:processingType="${xmlEscape(processingType)}"><adtcore:containerRef adtcore:name="${xmlEscape(group.toUpperCase())}" adtcore:type="FUGR/F" adtcore:uri="${fugrUri(group)}"/></fmodule:abapFunctionModule>`;
+    const res = await this.req("POST", `${fugrUri(group)}/fmodules`, { body, contentType: "application/*", query: transport ? { corrNr: transport } : {} });
+    if (res.status >= 300) AdtClient.fail(`함수 모듈 ${name} 생성`, res);
+  }
+
+  /** SAP에 저장된 함수 모듈 처리 유형 (normal / rfc / update ...). 알 수 없으면 null */
+  async functionModuleProcessingType(group: string, name: string): Promise<string | null> {
+    const res = await this.req("GET", fmUri(group, name));
+    if (res.status !== 200) return null;
+    return res.text.match(/fmodule:processingType="([^"]*)"/)?.[1] ?? null;
+  }
+
+  // ---------- 메시지 클래스 ----------
+
+  async readMessageClass(name: string): Promise<{ xml: string; numbers: Map<string, string> } | null> {
+    const res = await this.req("GET", msagUri(name), { accept: "application/*" });
+    if (res.status === 404) return null;
+    if (res.status !== 200) AdtClient.fail(`메시지 클래스 ${name} 조회`, res);
+    const numbers = new Map<string, string>();
+    for (const m of res.text.matchAll(/<mc:messages\b([^>]*?)\/?>/g)) {
+      const no = m[1].match(/mc:msgno="(\d+)"/)?.[1];
+      if (no) numbers.set(no.padStart(3, "0"), decodeXml(m[1].match(/mc:msgtext="([^"]*)"/)?.[1] ?? ""));
+    }
+    return { xml: res.text, numbers };
+  }
+
+  private static msgXml(m: { no: string; text: string; selfExplanatory?: boolean }): string {
+    return `<mc:messages mc:msgno="${xmlEscape(m.no.padStart(3, "0"))}" mc:msgtext="${xmlEscape(m.text.slice(0, 73))}" mc:selfexplainatory="${m.selfExplanatory === false ? "false" : "true"}" mc:documented="false"/>`;
+  }
+
+  async createMessageClass(name: string, description: string, pkg: string, transport: string, messages: { no: string; text: string; selfExplanatory?: boolean }[]): Promise<void> {
+    const body = `<?xml version="1.0" encoding="UTF-8"?><mc:messageClass xmlns:mc="http://www.sap.com/adt/MessageClass" ${this.common(name, description)} adtcore:type="MSAG/N"><adtcore:packageRef adtcore:name="${xmlEscape(pkg.toUpperCase())}"/>${messages.map(AdtClient.msgXml).join("")}</mc:messageClass>`;
+    const res = await this.req("POST", "/sap/bc/adt/messageclass", { body, contentType: "application/*", query: transport ? { corrNr: transport } : {} });
+    if (res.status >= 300) AdtClient.fail(`메시지 클래스 ${name} 생성`, res);
+  }
+
+  /** 없는 번호만 덧붙인다. 이미 있는 번호의 텍스트는 바꾸지 않는다 (다른 프로그램이 쓰고 있을 수 있음) */
+  async addMessages(name: string, xml: string, messages: { no: string; text: string; selfExplanatory?: boolean }[], transport: string): Promise<void> {
+    const uri = msagUri(name);
+    const handle = await this.lock(uri);
+    try {
+      const body = xml.replace(/<\/mc:messageClass>\s*$/,`${messages.map(AdtClient.msgXml).join("")}</mc:messageClass>`);
+      const query: Record<string, string> = { lockHandle: handle };
+      if (transport) query.corrNr = transport;
+      const res = await this.req("PUT", uri, { body, contentType: "application/*", query, stateful: true });
+      if (res.status >= 300) AdtClient.fail(`메시지 클래스 ${name} 저장`, res);
+    } finally {
+      await this.unlock(uri, handle);
+    }
   }
 
   async runUnitTests(type: ObjectType, name: string): Promise<string> {
