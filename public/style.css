@@ -394,3 +394,62 @@ select option:checked { background-color: var(--accent-bg2); color: var(--text);
 .sysrel-line { margin: -4px 0 12px; padding: 6px 10px; border-radius: 7px; font-size: 13px; font-weight: 700; color: var(--muted); background: var(--bg); border: 1px solid var(--line); }
 .sysrel-line.old { color: var(--warn); background: var(--warn-bg2); border-color: var(--warn); }
 .sysrel-line[hidden] { display: none; }
+
+/* ---------- 개발구성 ---------- */
+.dg-bar { background: linear-gradient(100deg, #111a24 0%, #15202b 60%, #0f2e2c 100%); color: #fff; border-radius: 16px; padding: 14px 28px; margin-bottom: 8px; }
+.dg-bar h2 { margin: 0; font-size: 20px; color: #fff; }
+.dg-tools { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0 0 12px; }
+.dg-tiles { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+.dg-tile { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 2px; }
+.dg-tile b { font-size: 22px; font-variant-numeric: tabular-nums; }
+.dg-tile span { font-size: 12px; color: var(--muted); }
+.dg-lock { max-width: 420px; margin: 40px auto; }
+.dg-lock input { margin-top: 8px; }
+.dg-lock button { width: 100%; }
+.dg-table { overflow-x: auto; }
+.dg-table table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.dg-table th { text-align: left; font-weight: 600; color: var(--muted); font-size: 12px; padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.dg-table td { padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.dg-table tr:hover td { background: var(--accent-bg); }
+.dg-table td.a-key { font-weight: 700; white-space: nowrap; }
+.dg-table code, .dg-box code { font-size: 12px; }
+.dg-table .num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ok-t { color: var(--ok); font-weight: 600; }
+.warn-t { color: var(--warn); font-weight: 600; }
+.dg-list { margin: 0; padding-left: 18px; font-size: 13px; }
+.dg-list li { margin-bottom: 6px; }
+.dg-cmd { background: var(--bg); color: var(--text); border: 1px solid var(--line); margin: 0; font-size: 12px; }
+
+/* 구성도 */
+.dg-diagram { display: grid; grid-template-columns: minmax(170px, 1fr) 90px minmax(320px, 2.2fr) 90px minmax(170px, 1fr); gap: 0; align-items: stretch; padding: 8px 0; }
+.dg-col { display: flex; flex-direction: column; justify-content: space-around; gap: 18px; }
+.dg-mid { justify-content: space-around; }
+.dg-box { border: 1.5px solid var(--line); border-radius: 12px; padding: 12px 14px; font-size: 12px; color: var(--muted); background: var(--panel); }
+.dg-bt { font-size: 15px; font-weight: 800; color: var(--text); margin-bottom: 4px; }
+.dg-box.c-user, .dg-box.c-edge { background: color-mix(in srgb, #6b8cff 12%, var(--panel)); border-color: color-mix(in srgb, #6b8cff 45%, var(--panel)); }
+.dg-box.c-proxy { background: color-mix(in srgb, #2dd4bf 12%, var(--panel)); border-color: color-mix(in srgb, #2dd4bf 50%, var(--panel)); }
+.dg-box.c-app { background: color-mix(in srgb, #a78bfa 14%, var(--panel)); border-color: color-mix(in srgb, #a78bfa 55%, var(--panel)); }
+.dg-box.c-ai { background: color-mix(in srgb, #f472b6 10%, var(--panel)); border-color: color-mix(in srgb, #f472b6 45%, var(--panel)); }
+.dg-box.c-data { background: color-mix(in srgb, #f59e0b 12%, var(--panel)); border-color: color-mix(in srgb, #f59e0b 50%, var(--panel)); }
+.dg-box.c-api, .dg-box.c-sap, .dg-box.c-cdn { background: color-mix(in srgb, #6b8cff 10%, var(--panel)); border-color: color-mix(in srgb, #6b8cff 40%, var(--panel)); }
+.dg-box.c-dev { background: var(--panel); }
+.dg-group { border: 2px dashed var(--line); border-radius: 16px; padding: 14px; background: color-mix(in srgb, var(--bg) 60%, var(--panel)); }
+.dg-gt { font-weight: 800; font-size: 15px; }
+.dg-arrow { position: relative; height: 30px; display: flex; align-items: center; justify-content: center; }
+.dg-arrow::before { content: ""; position: absolute; left: 6px; right: 10px; top: 50%; border-top: 2px solid var(--muted); }
+.dg-arrow::after { content: ""; position: absolute; right: 4px; top: calc(50% - 6px); border: 6px solid transparent; border-left: 9px solid var(--muted); border-right: 0; }
+.dg-arrow.dg-l::before { left: 10px; right: 6px; border-top-style: dashed; }
+.dg-arrow.dg-l::after { right: auto; left: 4px; border-left: 0; border-right: 9px solid var(--muted); }
+.dg-arrow span { position: relative; top: -14px; font-size: 11px; font-weight: 700; color: var(--muted); background: var(--panel); padding: 0 4px; white-space: nowrap; }
+.dg-down { position: relative; height: 26px; }
+.dg-down::before { content: ""; position: absolute; left: 50%; top: 2px; bottom: 8px; border-left: 2px solid var(--muted); }
+.dg-down::after { content: ""; position: absolute; left: calc(50% - 6px); bottom: 0; border: 6px solid transparent; border-top: 9px solid var(--muted); border-bottom: 0; }
+.dg-down span { position: absolute; left: calc(50% + 8px); top: 4px; font-size: 11px; font-weight: 700; color: var(--muted); white-space: nowrap; }
+.dg-split, .dg-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 1200px) { .dg-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 1000px) {
+  .dg-diagram { grid-template-columns: 1fr; gap: 10px; }
+  .dg-mid { display: none; }
+  .dg-col { flex-direction: row; flex-wrap: wrap; } .dg-col > .dg-box { flex: 1 1 200px; }
+}
+@media (max-width: 640px) { .dg-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } .dg-row2, .dg-split { grid-template-columns: 1fr; } }

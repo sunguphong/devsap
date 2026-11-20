@@ -33,7 +33,7 @@ export function stopRun(id: string): boolean {
   return true;
 }
 
-function claudeBin(): string {
+export function claudeBin(): string {
   if (process.env.CLAUDE_BIN) return process.env.CLAUDE_BIN;
   const exe = path.join(process.env.APPDATA ?? "", "npm", "node_modules", "@anthropic-ai", "claude-code", "bin", "claude.exe");
   return fs.existsSync(exe) ? exe : "claude";

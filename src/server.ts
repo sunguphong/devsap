@@ -6,6 +6,8 @@ import path from "node:path";
 import type { NextFunction, Request, Response } from "express";
 import { AdtClient } from "./adt.ts";
 import { authEnabled, loginRoutes, requireLogin } from "./auth.ts";
+import { devgateRoutes, requireDevgate } from "./devgate.ts";
+import { devInfo } from "./devinfo.ts";
 import { attachmentPath, checkGoogleSheet, deleteAttachment, importGoogleSheet, listAttachments, MAX_SIZE, saveAttachment } from "./attachments.ts";
 import { currentSystem, listSystems, resolveSystem, sapConfig, selectSystem } from "./systems.ts";
 import { approveDeploy, approveStage, failStage, hooks, isBusy, recoverInterrupted, revise } from "./board.ts";
@@ -142,32 +144,12 @@ app.delete("/api/tickets/:id", wrap((req, res) => {
   res.json({ ok: true });
 }));
 
-// ---------- 관리자: 인프라 구성 현황 (구성도에 붙일 실제 값) ----------
+// ---------- 개발구성: 인프라 구성 현황 (별도 비밀번호로 잠금) ----------
 
-app.get("/api/admin/info", (_req, res) => {
-  const count = (dir: string, f: (n: string) => boolean = () => true) => (fs.existsSync(dir) ? fs.readdirSync(dir).filter(f).length : 0);
-  const tickets = listTickets();
-  let git: { remote: string; branch: string; head: string } | null = null;
-  try {
-    const run = (...a: string[]) => execFileSync("git", a, { encoding: "utf8", windowsHide: true }).trim();
-    git = { remote: run("remote", "get-url", "origin"), branch: run("rev-parse", "--abbrev-ref", "HEAD"), head: run("log", "-1", "--format=%h %s (%cr)") };
-  } catch {}
-  res.json({
-    server: { node: process.version, port: Number(process.env.PORT || 3300), pid: process.pid, uptimeSec: Math.round(process.uptime()), platform: `${os.type()} ${os.release()}`, host: os.hostname(), cwd: process.cwd() },
-    auth: authEnabled(),
-    systems: listSystems().map((s) => ({ name: s.name, url: s.url, client: s.client, user: s.user })),
-    current: currentSystem(),
-    storage: {
-      tickets: tickets.length,
-      active: tickets.filter((t) => t.status !== "done").length,
-      trash: count(path.join("work", ".trash")),
-      wiki: count("wiki", (n) => n.endsWith(".md")),
-      wikiHistory: count(path.join("wiki", ".history")),
-      standardsHistory: count(path.join("standards", ".history")),
-    },
-    git,
-  });
-});
+devgateRoutes(app);
+app.get("/api/admin/info", requireDevgate, wrap(async (_req, res) => {
+  res.json(await devInfo());
+}));
 
 // ---------- 에이전트 오피스 (에이전트별 현재 업무·대기열·최근 활동) ----------
 
