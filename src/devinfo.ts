@@ -46,14 +46,17 @@ const run = (cmd: string, args: string[], timeout = 5000) => {
 
 let claudeVersion: string | null | undefined;
 
-/** cloudflared 빠른 터널은 127.0.0.1:20241~20245 의 /quicktunnel 에 자기 주소를 알려 준다 */
-async function tunnels(): Promise<string[]> {
+/** cloudflared 빠른 터널은 127.0.0.1:20241~20245 의 /quicktunnel 에 자기 주소를, /config 에 연결 대상을 알려 준다.
+ *  이 PC에 다른 앱용 터널도 떠 있을 수 있으므로 보드 포트로 가는 것만 고른다 */
+async function tunnels(boardPort: number): Promise<string[]> {
+  const get = async (port: number, p: string) => (await fetch(`http://127.0.0.1:${port}${p}`, { signal: AbortSignal.timeout(800) })).json() as Promise<any>;
   const found = await Promise.all(
     [20241, 20242, 20243, 20244, 20245].map(async (port) => {
       try {
-        const r = await fetch(`http://127.0.0.1:${port}/quicktunnel`, { signal: AbortSignal.timeout(800) });
-        const j = (await r.json()) as { hostname?: string };
-        return j.hostname ? `https://${j.hostname}` : null;
+        const [q, c] = await Promise.all([get(port, "/quicktunnel"), get(port, "/config")]);
+        const targets: string[] = (c?.config?.ingress ?? []).map((r: any) => String(r.service ?? ""));
+        const toBoard = targets.some((s) => new RegExp(`^https?://(localhost|127\\.0\\.0\\.1|\\[::1\\]):${boardPort}/?$`).test(s));
+        return q?.hostname && toBoard ? `https://${q.hostname}` : null;
       } catch {
         return null;
       }
@@ -133,7 +136,7 @@ export async function devInfo() {
     auth: authEnabled(),
     systems: listSystems().map((s) => ({ name: s.name, url: s.url, client: s.client, user: s.user })),
     current: currentSystem(),
-    tunnels: await tunnels(),
+    tunnels: await tunnels(Number(process.env.PORT || 3300)),
     claude: claudeVersion,
     git,
   };
